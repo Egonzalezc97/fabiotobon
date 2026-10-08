@@ -96,6 +96,7 @@ export async function obtenerDetalleCita(db: BaseDeDatos, id: string, actor: { u
       "cita.vista_en",
       "cita.notas_internas",
       "cita.creada_en",
+      "cita.revision_resuelta_en",
       "paciente.id as pacienteId",
       "paciente.nombre as pacienteNombre",
       "paciente.tipo_documento as pacienteTipoDocumento",
@@ -113,6 +114,11 @@ export async function obtenerDetalleCita(db: BaseDeDatos, id: string, actor: { u
     .where("cita_id", "=", id)
     .orderBy("id")
     .execute();
+  const consentimientos = await db
+    .selectFrom("consentimiento")
+    .select(["id", "paciente_id", "version", "aceptado_en", "aceptante_nombre", "aceptante_documento", "aceptante_celular"])
+    .where("cita_id", "=", id)
+    .execute();
   await registrar(db, { actorId: actor.userId, actorTipo: "usuario", accion: "cita.leida", entidad: "cita", entidadId: id });
-  return { cita, eventos };
+  return { cita, eventos, consentimientos };
 }

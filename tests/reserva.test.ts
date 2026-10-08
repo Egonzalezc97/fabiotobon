@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cerrarDb, db } from "@/lib/db";
 import { emisorDesarrollo, EmisorNoPermitido, obtenerEmisor, type EmisorCodigo } from "@/lib/verificacion";
-import { crearCita } from "@/modules/agenda/citas";
+import { crearCita, resolverRevisionVinculando, RevisionNoPendiente } from "@/modules/agenda/citas";
 import { contarPendientesDeRevisar } from "@/modules/agenda/consultas";
 import {
   completarReserva,
@@ -172,6 +172,65 @@ describe("identidad después de verificar", () => {
     const cita = await db().selectFrom("cita").selectAll().executeTakeFirstOrThrow();
     expect(cita).toMatchObject({ paciente_id: e.existenteId, revision: "documento_con_otro_celular" });
     expect(await contarPendientesDeRevisar(db())).toEqual({ webNuevas: 0, enRevision: 1 });
+  });
+
+  it("con otro celular, el consentimiento NO se asocia a la ficha: queda en la cita con los datos de quien lo aceptó", async () => {
+    const e = await escenario();
+    await reservar(e.servicioId, { numeroDocumento: "52000111", celular: "3009998877", nombre: "Quien Reservó" });
+    const cita = await db().selectFrom("cita").select("id").executeTakeFirstOrThrow();
+    const consentimiento = await db().selectFrom("consentimiento").selectAll().executeTakeFirstOrThrow();
+    expect(consentimiento).toMatchObject({
+      paciente_id: null,
+      cita_id: cita.id,
+      aceptante_nombre: "Quien Reservó",
+      aceptante_documento: "CC 52000111",
+      aceptante_celular: "+573009998877",
+    });
+    const deLaFicha = await db().selectFrom("consentimiento").select("id").where("paciente_id", "=", e.existenteId).execute();
+    expect(deLaFicha).toHaveLength(0);
+  });
+
+  it("al resolver la revisión vinculando, el consentimiento pasa a la ficha (una sola vez) y queda evento", async () => {
+    const e = await escenario();
+    await reservar(e.servicioId, { numeroDocumento: "52000111", celular: "3009998877" });
+    const cita = await db().selectFrom("cita").select("id").executeTakeFirstOrThrow();
+    const fabio = { actor: { tipo: "usuario" as const, id: "fabio" } };
+
+    expect(await resolverRevisionVinculando(db(), cita.id, fabio)).toEqual({ consentimientosVinculados: 1 });
+    const consentimiento = await db().selectFrom("consentimiento").selectAll().executeTakeFirstOrThrow();
+    expect(consentimiento.paciente_id).toBe(e.existenteId);
+    const fila = await db().selectFrom("cita").select(["revision", "revision_resuelta_en", "revision_resuelta_por"]).executeTakeFirstOrThrow();
+    expect(fila).toMatchObject({ revision: "documento_con_otro_celular", revision_resuelta_por: "fabio" });
+    expect(fila.revision_resuelta_en).not.toBeNull();
+    const eventos = await db().selectFrom("cita_evento").select("tipo").where("cita_id", "=", cita.id).execute();
+    expect(eventos.map((x) => x.tipo)).toContain("revision_resuelta");
+    // La ficha no cambia: conserva su celular.
+    const ficha = await db().selectFrom("paciente").select("celular").where("id", "=", e.existenteId).executeTakeFirstOrThrow();
+    expect(ficha.celular).toBe("+573001110000");
+    // No se resuelve dos veces.
+    await expect(resolverRevisionVinculando(db(), cita.id, fabio)).rejects.toBeInstanceOf(RevisionNoPendiente);
+  });
+
+  it("el consentimiento solo admite vincularse una vez: no se edita, no se re-vincula, no se borra", async () => {
+    const e = await escenario();
+    await reservar(e.servicioId, { numeroDocumento: "52000111", celular: "3009998877" });
+    const { id } = await db().selectFrom("consentimiento").select("id").executeTakeFirstOrThrow();
+    await expect(db().updateTable("consentimiento").set({ texto: "otro" }).where("id", "=", id).execute()).rejects.toThrow(/solo inserción/);
+    await expect(
+      db().updateTable("consentimiento").set({ paciente_id: e.existenteId, aceptante_nombre: "Cambiado" }).where("id", "=", id).execute(),
+    ).rejects.toThrow(/solo inserción/);
+    await db().updateTable("consentimiento").set({ paciente_id: e.existenteId }).where("id", "=", id).execute();
+    const otro = await db().insertInto("paciente").values({ tipo_documento: "CC", numero_documento: "99887766", nombre: "Otro" }).returning("id").executeTakeFirstOrThrow();
+    await expect(db().updateTable("consentimiento").set({ paciente_id: otro.id }).where("id", "=", id).execute()).rejects.toThrow(/solo inserción/);
+    await expect(db().deleteFrom("consentimiento").where("id", "=", id).execute()).rejects.toThrow(/solo inserción/);
+  });
+
+  it("las demás reservas guardan el consentimiento en la ficha y también quién lo aceptó", async () => {
+    const { servicioId } = await escenario();
+    await reservar(servicioId);
+    const consentimiento = await db().selectFrom("consentimiento").selectAll().executeTakeFirstOrThrow();
+    expect(consentimiento.paciente_id).not.toBeNull();
+    expect(consentimiento).toMatchObject({ aceptante_nombre: "Persona Nueva", aceptante_celular: "+573002223344" });
   });
 
   it("varios pacientes pueden reservar con el mismo celular (el límite es por documento)", async () => {

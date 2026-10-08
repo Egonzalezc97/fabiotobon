@@ -500,11 +500,16 @@ export async function completarReserva(
         throw error;
       }
 
+      // Con documento existente y OTRO celular, quien acepta puede no ser el titular: el consentimiento queda
+      // ligado solo a la cita (con los datos de quien lo aceptó) hasta que se resuelva la revisión.
       await trx
         .insertInto("consentimiento")
         .values({
-          paciente_id: pacienteId,
+          paciente_id: revision === "documento_con_otro_celular" ? null : pacienteId,
           cita_id: cita.id,
+          aceptante_nombre: s.nombre,
+          aceptante_documento: datosIngresados.documento,
+          aceptante_celular: s.celular,
           tipo: "tratamiento_datos",
           version: texto.version,
           texto: texto.texto,

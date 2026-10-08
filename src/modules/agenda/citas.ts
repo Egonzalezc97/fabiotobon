@@ -6,6 +6,7 @@ import {
   CitaNoActiva,
   CitaNoEncontrada,
   CupoNoDisponible,
+  ErrorAgenda,
   esViolacionDeExclusion,
   FueraDeHorario,
   ServicioNoDisponible,
@@ -111,7 +112,7 @@ async function conExclusion<T>(operacion: () => Promise<T>): Promise<T> {
 async function registrarEvento(
   trx: BaseDeDatos,
   citaId: string,
-  tipo: "creada" | "reprogramada" | "cancelada" | "estado_cambiado" | "vista",
+  tipo: "creada" | "reprogramada" | "cancelada" | "estado_cambiado" | "vista" | "revision_resuelta",
   actor: Actor,
   datos: { antes?: unknown; despues?: unknown; detalle?: Record<string, unknown> } = {},
 ) {
@@ -278,3 +279,48 @@ export async function marcarCitaVista(db: BaseDeDatos, citaId: string, opciones:
   });
 }
 
+
+export class RevisionNoPendiente extends ErrorAgenda {
+  constructor() {
+    super("Esta cita no tiene una revisión de identidad pendiente.");
+  }
+}
+
+/**
+ * Fabio confirmó que quien reservó con un documento existente desde otro celular SÍ es el titular:
+ * el consentimiento que estaba ligado solo a la cita pasa a la ficha y la revisión queda resuelta.
+ * La ficha (incluido su celular) no se modifica.
+ */
+export async function resolverRevisionVinculando(
+  db: BaseDeDatos,
+  citaId: string,
+  opciones: { actor: Actor },
+): Promise<{ consentimientosVinculados: number }> {
+  return enTransaccion(db, async (trx) => {
+    const cita = await trx
+      .selectFrom("cita")
+      .select(["paciente_id", "revision", "revision_resuelta_en"])
+      .where("id", "=", citaId)
+      .forUpdate()
+      .executeTakeFirst();
+    if (!cita) throw new CitaNoEncontrada();
+    if (cita.revision !== "documento_con_otro_celular" || cita.revision_resuelta_en) throw new RevisionNoPendiente();
+
+    const vinculados = await trx
+      .updateTable("consentimiento")
+      .set({ paciente_id: cita.paciente_id })
+      .where("cita_id", "=", citaId)
+      .where("paciente_id", "is", null)
+      .returning("id")
+      .execute();
+    await trx
+      .updateTable("cita")
+      .set({ revision_resuelta_en: new Date(), revision_resuelta_por: opciones.actor.id ?? null })
+      .where("id", "=", citaId)
+      .execute();
+    await registrarEvento(trx, citaId, "revision_resuelta", opciones.actor, {
+      detalle: { resolucion: "vinculada", consentimientos_vinculados: vinculados.length },
+    });
+    return { consentimientosVinculados: vinculados.length };
+  });
+}

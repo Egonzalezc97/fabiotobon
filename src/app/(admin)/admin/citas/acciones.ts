@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requerirAdmin } from "@/lib/auth/servidor";
 import { db } from "@/lib/db";
-import { cambiarEstadoCita, cancelarCita, crearCita, reprogramarCita, type EstadoCita } from "@/modules/agenda/citas";
+import { cambiarEstadoCita, cancelarCita, crearCita, reprogramarCita, resolverRevisionVinculando, type EstadoCita } from "@/modules/agenda/citas";
 import { ErrorAgenda, FueraDeHorario } from "@/modules/agenda/errores";
 import { esFechaLocal, fechaLocal, instante } from "@/modules/agenda/tiempo";
 import { buscarPacientes, crearPaciente, DatosPacienteInvalidos, DocumentoDuplicado, type ResultadoBusqueda } from "@/modules/pacientes";
@@ -118,4 +118,15 @@ export async function cambiarEstadoAccion(_previo: EstadoAccion, f: FormData): P
   }
   revalidatePath("/admin", "layout");
   return { ok: "Estado actualizado." };
+}
+
+export async function resolverRevisionAccion(_previo: EstadoAccion, f: FormData): Promise<EstadoAccion> {
+  const admin = await requerirAdmin();
+  try {
+    await resolverRevisionVinculando(db(), texto(f, "citaId"), { actor: { tipo: "usuario", id: admin.userId } });
+  } catch (error) {
+    return traducir(error);
+  }
+  revalidatePath("/admin", "layout");
+  return { ok: "Identidad confirmada. La autorización de datos quedó vinculada a la ficha." };
 }

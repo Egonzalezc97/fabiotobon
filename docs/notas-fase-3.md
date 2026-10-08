@@ -7,7 +7,7 @@ Hoy (fase 2): si una reserva web usa un documento que ya existe pero desde otro 
 En la fase 3, con el emisor real de mensajes:
 
 1. Enviar una confirmación al celular registrado en la ficha del documento.
-2. Si la persona confirma, se vincula automáticamente: la marca de revisión se resuelve y queda evento en el historial.
+2. Si la persona confirma, se vincula automáticamente con `resolverRevisionVinculando` (la misma función que usa el panel): el consentimiento, que hasta entonces está ligado solo a la cita con los datos de quien lo aceptó, pasa a la ficha; la revisión se resuelve y queda evento en el historial.
 3. Si no confirma dentro de un plazo configurable (DPF), la cita sigue en revisión de Fabio.
 
 Pendiente de definir con Fabio: el plazo, el texto de la plantilla (requiere aprobación de Meta) y qué pasa con la cita si el titular responde que no fue él.

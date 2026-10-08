@@ -11,6 +11,7 @@ import { leerParametros } from "@/modules/configuracion";
 import { formatearDocumento } from "@/modules/pacientes/documento";
 import { Alerta, Etiqueta } from "@/components/panel/ui";
 import { AccionesCita } from "./acciones-cita";
+import { ResolverRevision } from "./resolver-revision";
 
 export const metadata: Metadata = { title: "Cita" };
 
@@ -21,6 +22,7 @@ const EVENTO: Record<string, string> = {
   cancelada: "Cancelada",
   estado_cambiado: "Cambio de estado",
   vista: "Vista en el panel",
+  revision_resuelta: "Identidad confirmada",
 };
 const MOMENTO = new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", dateStyle: "medium", timeStyle: "short" });
 
@@ -43,7 +45,7 @@ export default async function DetalleCita({ params }: Props) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const detalle = await obtenerDetalleCita(db(), id, { userId: admin.userId });
   if (!detalle) notFound();
-  const { cita, eventos } = detalle;
+  const { cita, eventos, consentimientos } = detalle;
 
   // Abrir la cita apaga los indicadores de "nueva" y "en revisión".
   const yaVista = Boolean(cita.vista_en);
@@ -74,12 +76,18 @@ export default async function DetalleCita({ params }: Props) {
         </div>
       </div>
 
-      {cita.revision === "documento_con_otro_celular" && (
-        <Alerta tono="error">
-          <strong className="font-medium">Revisa la identidad.</strong> Esta reserva usó un documento que ya existía, pero desde
-          otro celular. La ficha no se modificó. Puede ser un error de digitación, un cambio de número o una suplantación: confirma
-          con el paciente antes de la cita.
-        </Alerta>
+      {cita.revision === "documento_con_otro_celular" && !cita.revision_resuelta_en && (
+        <section className="grid gap-3">
+          <Alerta tono="error">
+            <strong className="font-medium">Revisa la identidad.</strong> Esta reserva usó un documento que ya existía, pero desde
+            otro celular. La ficha no se modificó y la autorización de datos quedó ligada solo a esta cita. Puede ser un error de
+            digitación, un cambio de número o una suplantación: confirma con el titular antes de la cita.
+          </Alerta>
+          <ResolverRevision citaId={cita.id} />
+        </section>
+      )}
+      {cita.revision_resuelta_en && (
+        <Alerta tono="ok">Identidad confirmada el {MOMENTO.format(cita.revision_resuelta_en)}. La autorización quedó vinculada a la ficha.</Alerta>
       )}
       {cita.revision === "sin_documento" && (
         <Alerta tono="error">Reserva sin documento: se creó una ficha nueva. Revisa si la persona ya era paciente.</Alerta>
@@ -120,6 +128,15 @@ export default async function DetalleCita({ params }: Props) {
             </p>
           </div>
         )}
+        {consentimientos.map((c) => (
+          <p key={c.id} className="border-t border-gris-200 pt-3 text-sm text-gris-600">
+            Autorización de datos ({c.version}) aceptada el {MOMENTO.format(c.aceptado_en)}
+            {c.aceptante_nombre ? ` por ${c.aceptante_nombre}` : ""}
+            {c.aceptante_documento ? ` · ${c.aceptante_documento}` : ""}
+            {c.aceptante_celular ? ` · ${formatearCelular(c.aceptante_celular)}` : ""}
+            {c.paciente_id ? " · vinculada a la ficha" : " · pendiente de vincular a la ficha"}
+          </p>
+        ))}
         {cita.notas_internas && <p className="border-t border-gris-200 pt-3 text-sm text-gris-600">{cita.notas_internas}</p>}
       </section>
 

@@ -75,6 +75,8 @@ export interface Cita {
   origen: string;
   paciente_id: string;
   revision: string | null;
+  revision_resuelta_en: Timestamp | null;
+  revision_resuelta_por: string | null;
   servicio_id: string;
   vista_en: Timestamp | null;
 }
@@ -100,11 +102,14 @@ export interface Configuracion {
 
 export interface Consentimiento {
   aceptado_en: Generated<Timestamp>;
+  aceptante_celular: string | null;
+  aceptante_documento: string | null;
+  aceptante_nombre: string | null;
   cita_id: string | null;
   id: Generated<string>;
   ip: string | null;
   origen: string;
-  paciente_id: string;
+  paciente_id: string | null;
   texto: string;
   texto_sha256: string;
   tipo: string;

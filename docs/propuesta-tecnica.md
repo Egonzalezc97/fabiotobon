@@ -364,3 +364,15 @@ Esta propuesta no reemplaza un concepto jurídico; los puntos regulatorios requi
 - Reglas del agente derivadas:
   - Cuando llega un eco (Fabio respondió desde la app), el agente se pausa en esa conversación por un tiempo configurable; el panel permite reanudarlo.
   - Mientras el número sea también personal, **todas** sus conversaciones llegarían al sistema: hace falta una lista de contactos que el agente ignora y cuyos mensajes no se guardan. Recomendación: no activar el agente hasta separar el número.
+
+## Anexo 2026-10-08 · Control de pagos por paciente (fase 4)
+
+Aclaración de Esteban: "pagos" significa el control de cuentas de Fabio por paciente, no una pasarela.
+
+- `tratamiento`: paciente, servicio o descripción, costo total acordado, estado (presupuestado, en curso, terminado, cancelado), fechas, notas.
+- `abono`: tratamiento, valor, fecha, medio (efectivo, transferencia, tarjeta, otro), referencia, quién lo registró. No se borra; se anula con motivo.
+- Ajustes del costo (descuentos o cambios del plan) quedan como evento con motivo, sin reescribir el valor original.
+- Calculado, no guardado: total abonado, saldo pendiente y estado de pago (saldado, con saldo, sin abonos).
+- Visible en la tabla de pacientes (estado de pago y saldo) y en la ficha (tratamientos con su historial de abonos).
+- DPF: ¿maneja cuotas con fechas de pago? Si sí, se agrega un plan de cuotas y el estado "en mora"; si no, basta el saldo.
+- Fuera de alcance: facturación electrónica DIAN, RIPS, pasarela de pagos.
