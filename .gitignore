@@ -1,0 +1,11 @@
+# Documentos comerciales: no van al repositorio
+Propuesta-*.pdf
+
+# Dependencias y compilados
+node_modules/
+.next/
+
+# Secretos
+.env
+.env.*
+!.env.example
