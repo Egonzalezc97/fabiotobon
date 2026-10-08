@@ -5,6 +5,8 @@ const esquema = z.object({
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET debe tener al menos 32 caracteres"),
   BETTER_AUTH_URL: z.url(),
+  // Firma los códigos de verificación (HMAC). Distinto de BETTER_AUTH_SECRET.
+  VERIFICACION_SECRET: z.string().min(32, "VERIFICACION_SECRET debe tener al menos 32 caracteres"),
   DEMO_CONTENT: z
     .enum(["true", "false"])
     .default("false")

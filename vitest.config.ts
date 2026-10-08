@@ -24,6 +24,8 @@ export default defineConfig({
       DATABASE_URL: urlPruebas ?? "",
       BETTER_AUTH_SECRET: "secreto-solo-para-pruebas-automatizadas-0123456789",
       BETTER_AUTH_URL: "http://localhost:3000",
+      VERIFICACION_SECRET: "secreto-de-verificacion-solo-para-pruebas-0123456789",
+      DEMO_CONTENT: "false",
     },
   },
 });
