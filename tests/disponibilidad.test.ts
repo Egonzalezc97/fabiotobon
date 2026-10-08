@@ -173,3 +173,20 @@ describe("validaciones puntuales", () => {
     expect(dentroDelHorario(miercoles, HORARIO)).toBe(false);
   });
 });
+
+describe("meses de calendario", () => {
+  it("arma las semanas de lunes a domingo que cubren el mes", async () => {
+    const { semanasDelMes, sumarMeses, esMesLocal, nombreMes } = await import("@/modules/agenda/tiempo");
+    const octubre = semanasDelMes("2026-10");
+    // 1 de octubre de 2026 es jueves; 31 es sábado.
+    expect(octubre[0]).toEqual(["2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04"]);
+    expect(octubre.at(-1)).toEqual(["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01"]);
+    expect(octubre).toHaveLength(5);
+    // Febrero de 2027 empieza en lunes y tiene 28 días: exactamente 4 semanas.
+    expect(semanasDelMes("2027-02")).toHaveLength(4);
+    expect(sumarMeses("2026-12", 1)).toBe("2027-01");
+    expect(sumarMeses("2026-01", -1)).toBe("2025-12");
+    expect(esMesLocal("2026-13")).toBe(false);
+    expect(nombreMes("2026-10")).toBe("octubre de 2026");
+  });
+});

@@ -101,3 +101,41 @@ export function formatearFechaCorta(momento: Date): string {
 export function formatearHora(momento: Date): string {
   return new Intl.DateTimeFormat("es-CO", { timeZone: ZONA, hour: "numeric", minute: "2-digit" }).format(momento);
 }
+
+// ---------------------------------------------------------------------------
+// Meses de calendario ("AAAA-MM"), lunes a domingo.
+// ---------------------------------------------------------------------------
+
+export type MesLocal = string;
+
+export function esMesLocal(valor: string): boolean {
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(valor);
+}
+
+export function mesDe(fecha: FechaLocal): MesLocal {
+  return fecha.slice(0, 7);
+}
+
+export function sumarMeses(mes: MesLocal, n: number): MesLocal {
+  const [a, m] = mes.split("-").map(Number) as [number, number];
+  const d = new Date(Date.UTC(a, m - 1 + n, 1));
+  return d.toISOString().slice(0, 7);
+}
+
+/** Semanas (lunes a domingo) que cubren el mes; incluyen días del mes anterior y del siguiente. */
+export function semanasDelMes(mes: MesLocal): FechaLocal[][] {
+  const primero = `${mes}-01`;
+  const ultimo = sumarDias(`${sumarMeses(mes, 1)}-01`, -1);
+  const semanas: FechaLocal[][] = [];
+  for (let lunes = lunesDeLaSemana(primero); lunes <= ultimo; lunes = sumarDias(lunes, 7)) {
+    semanas.push(Array.from({ length: 7 }, (_, i) => sumarDias(lunes, i)));
+  }
+  return semanas;
+}
+
+const NOMBRE_MES = new Intl.DateTimeFormat("es-CO", { timeZone: ZONA, month: "long", year: "numeric" });
+
+/** "octubre de 2026" */
+export function nombreMes(mes: MesLocal): string {
+  return NOMBRE_MES.format(instante(`${mes}-15`, 12 * 60));
+}

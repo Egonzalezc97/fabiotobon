@@ -1,7 +1,22 @@
 import Link from "next/link";
 import { EnlaceWhatsapp } from "@/components/publico/enlaces";
 import { formatearPrecio, formatearDuracion } from "@/modules/servicios";
-import { formatearFechaLarga, formatearHora, fechaLocal, horaLocal, instante as aInstante, type FechaLocal } from "@/modules/agenda/tiempo";
+import type { CalendarioMes } from "@/components/publico/calendario-mes";
+import {
+  fechaLocal,
+  formatearFechaLarga,
+  formatearHora,
+  horaLocal,
+  instante as aInstante,
+  mesDe,
+  nombreMes,
+  semanasDelMes,
+  sumarMeses,
+  type FechaLocal,
+  type MesLocal,
+} from "@/modules/agenda/tiempo";
+
+type CalendarioProps = React.ComponentProps<typeof CalendarioMes>;
 
 // Piezas visuales de la reserva pública. Sin datos de otras personas: solo horas libres y la propia reserva.
 
@@ -70,61 +85,6 @@ export function ResumenCita({
   );
 }
 
-/** Franja de días del horizonte. Los días sin cupos se ven, pero no se pueden elegir. */
-export function SelectorDias({
-  dias,
-  conCupos,
-  seleccionado,
-  enlace,
-}: {
-  dias: FechaLocal[];
-  conCupos: Set<FechaLocal>;
-  seleccionado: FechaLocal | null;
-  enlace: (fecha: FechaLocal) => string;
-}) {
-  const formato = new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", weekday: "short" });
-  const mes = new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", month: "short" });
-  return (
-    <nav aria-label="Días" className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0">
-      <ul className="flex gap-2 pb-2">
-        {dias.map((fecha) => {
-          const instante = aInstante(fecha, 12 * 60);
-          const disponible = conCupos.has(fecha);
-          const activo = fecha === seleccionado;
-          const contenido = (
-            <>
-              <span className="text-[0.6875rem] uppercase tracking-[0.14em]">{formato.format(instante).replace(".", "")}</span>
-              <span className="text-xl tabular-nums">{Number(fecha.slice(8))}</span>
-              <span className="text-[0.6875rem] uppercase tracking-[0.14em]">{mes.format(instante).replace(".", "")}</span>
-            </>
-          );
-          const clases = "flex w-16 shrink-0 flex-col items-center gap-0.5 rounded-[2px] border py-2.5 font-sans";
-          return (
-            <li key={fecha}>
-              {disponible ? (
-                <Link
-                  href={enlace(fecha)}
-                  aria-current={activo ? "date" : undefined}
-                  scroll={false}
-                  className={`${clases} transition-colors duration-150 ${
-                    activo ? "border-gris-800 bg-gris-800 text-white" : "border-gris-200 text-gris-800 hover:border-gris-800"
-                  }`}
-                >
-                  {contenido}
-                </Link>
-              ) : (
-                <span aria-disabled="true" className={`${clases} border-transparent text-gris-400`} title="Sin horarios disponibles">
-                  {contenido}
-                </span>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
-  );
-}
-
 /** Agrupa cupos por día (en Bogotá). */
 export function agruparPorDia(cupos: Date[]): Map<FechaLocal, Date[]> {
   const mapa = new Map<FechaLocal, Date[]>();
@@ -153,4 +113,39 @@ export function NoDisponible({ whatsapp }: { whatsapp: string | null }) {
       </div>
     </Contenedor>
   );
+}
+
+const ETIQUETA_DIA = new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", weekday: "long", day: "numeric", month: "long" });
+
+/** Datos de la cuadrícula de mes: solo qué días tienen cupos, nunca por qué los demás no. */
+export function armarCalendario(o: {
+  mes: MesLocal;
+  conCupos: Set<FechaLocal>;
+  seleccionado: FechaLocal | null;
+  hoy: FechaLocal;
+  primerMes: MesLocal;
+  ultimoMes: MesLocal;
+  hrefDia: (fecha: FechaLocal) => string;
+  hrefMes: (mes: MesLocal) => string;
+}): CalendarioProps {
+  return {
+    titulo: nombreMes(o.mes),
+    hoy: o.hoy,
+    seleccionado: o.seleccionado,
+    anterior: o.mes > o.primerMes ? o.hrefMes(sumarMeses(o.mes, -1)) : null,
+    siguiente: o.mes < o.ultimoMes ? o.hrefMes(sumarMeses(o.mes, 1)) : null,
+    semanas: semanasDelMes(o.mes).map((semana) =>
+      semana.map((fecha) => {
+        const delMes = mesDe(fecha) === o.mes;
+        const disponible = delMes && o.conCupos.has(fecha);
+        return {
+          fecha,
+          numero: Number(fecha.slice(8)),
+          delMes,
+          href: disponible ? o.hrefDia(fecha) : null,
+          etiqueta: `${ETIQUETA_DIA.format(aInstante(fecha, 12 * 60))}, ${disponible ? "con horarios disponibles" : "sin horarios"}`,
+        };
+      }),
+    ),
+  };
 }
