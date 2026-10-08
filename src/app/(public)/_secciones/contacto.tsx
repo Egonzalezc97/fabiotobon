@@ -25,7 +25,7 @@ export function Contacto({
   horario: LineaHorario[];
 }) {
   return (
-    <section id="contacto" aria-labelledby="titulo-contacto" className="scroll-mt-16">
+    <section id="contacto" aria-labelledby="titulo-contacto" className="ancla">
       <div className="mx-auto grid max-w-[84rem] gap-14 px-5 py-20 md:px-10 md:py-28 lg:grid-cols-12 lg:gap-x-6">
         <div className="lg:col-span-6">
           <h2

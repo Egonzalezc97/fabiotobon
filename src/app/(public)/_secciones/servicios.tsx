@@ -15,7 +15,7 @@ export function Servicios({
   const hayPrecios = servicios.some((s) => s.precioCop !== null);
 
   return (
-    <section id="servicios" aria-labelledby="titulo-servicios" className="scroll-mt-16 bg-papel">
+    <section id="servicios" aria-labelledby="titulo-servicios" className="ancla bg-papel">
       <div className="mx-auto grid max-w-[84rem] gap-12 px-5 py-20 md:px-10 md:py-28 lg:grid-cols-12 lg:gap-x-6">
         <div className="lg:col-span-4">
           <div className="lg:sticky lg:top-16">

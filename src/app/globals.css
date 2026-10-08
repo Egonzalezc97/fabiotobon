@@ -41,6 +41,40 @@ body {
   outline-offset: 3px;
 }
 
+/* Sobre grafito el azul no se distingue: el foco va en blanco. */
+.sobre-oscuro :focus-visible {
+  outline-color: #fff;
+}
+
+/*
+ * Alto de la cabecera fija (cinta de demostración + navbar). MedirCabecera lo ajusta al valor real;
+ * estos son los de antes de que cargue JS.
+ */
+:root {
+  --alto-cabecera: 4rem;
+}
+:root:has([data-cinta-demo]) {
+  --alto-cabecera: 6.25rem;
+}
+@media (min-width: 48rem) {
+  :root {
+    --alto-cabecera: 4.75rem;
+  }
+  :root:has([data-cinta-demo]) {
+    --alto-cabecera: 7rem;
+  }
+}
+
+/* Destino de los enlaces de ancla: no queda tapado por la cabecera fija. */
+.ancla {
+  scroll-margin-top: calc(var(--alto-cabecera) + 1rem);
+}
+
+/* Con el menú móvil abierto, el botón flotante de WhatsApp no se ve ni recibe foco. */
+body[data-menu-abierto] .whatsapp-flotante {
+  display: none;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;

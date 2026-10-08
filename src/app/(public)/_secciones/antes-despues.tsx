@@ -11,7 +11,7 @@ export function AntesDespues({ contenido, publicados }: { contenido: ContenidoLa
       ? publicados.map((c) => ({ id: c.id, procedimiento: c.procedimiento, descripcion: c.descripcion || null, imagenes: { antes: c.antes, despues: c.despues } }))
       : contenido.casos;
   return (
-    <section id="antes-y-despues" aria-labelledby="titulo-antes-despues" className="scroll-mt-16 bg-grafito text-gris-100">
+    <section id="antes-y-despues" aria-labelledby="titulo-antes-despues" className="ancla bg-grafito text-gris-100">
       <div className="mx-auto max-w-[84rem] px-5 py-20 md:px-10 md:py-28">
         <div className="mb-12 grid gap-6 lg:grid-cols-12 lg:gap-x-6">
           <h2

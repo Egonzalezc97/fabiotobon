@@ -69,7 +69,7 @@ export function WhatsappFlotante({ enlace }: { enlace: string | null }) {
     bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))",
   };
   const circulo =
-    "fixed z-40 grid size-14 place-items-center rounded-full bg-[#25D366] text-white shadow-[0_4px_14px_rgba(0,0,0,0.18)]";
+    "whatsapp-flotante fixed z-40 grid size-14 place-items-center rounded-full bg-[#25D366] text-white shadow-[0_4px_14px_rgba(0,0,0,0.18)]";
 
   if (!enlace) {
     if (!marcadoresVisibles()) return null;

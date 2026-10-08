@@ -4,6 +4,7 @@ import { CintaDemo } from "@/components/publico/cinta-demo";
 import { WhatsappFlotante } from "@/components/publico/enlaces";
 import { datosSitio } from "@/lib/sitio";
 import { Cabecera } from "./_secciones/cabecera";
+import { MedirCabecera } from "./_secciones/menu-movil";
 import { Pie } from "./_secciones/pie";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -26,12 +27,16 @@ export default async function LayoutPublico({ children }: { children: React.Reac
     <div className="bg-white">
       <a
         href="#contenido"
-        className="sr-only z-50 bg-white px-4 py-2 font-sans focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        className="sr-only z-[60] bg-white px-4 py-2 font-sans focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
       >
         Saltar al contenido
       </a>
-      {modoDemo && <CintaDemo />}
-      <Cabecera />
+      {/* Cinta y navbar en un solo bloque fijo: no se montan una sobre otra. */}
+      <div data-cabecera className="sticky top-0 z-50">
+        {modoDemo && <CintaDemo />}
+        <Cabecera />
+        <MedirCabecera />
+      </div>
       <main id="contenido">{children}</main>
       <Pie contacto={contacto} />
       <WhatsappFlotante enlace={contacto.enlaceWhatsapp} />
