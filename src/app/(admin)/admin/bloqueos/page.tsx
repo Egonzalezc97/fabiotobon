@@ -40,7 +40,7 @@ export default async function Bloqueos() {
               return (
                 <li key={b.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                   <span>
-                    <span className="first-letter:uppercase">{cuando}</span>
+                    <span className="block first-letter:uppercase">{cuando}</span>
                     {b.motivo && <span className="block text-sm text-gris-600">{b.motivo}</span>}
                   </span>
                   <form action={eliminarBloqueoAccion}>

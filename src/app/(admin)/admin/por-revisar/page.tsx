@@ -21,7 +21,7 @@ function Lista({ citas, vacia }: { citas: CitaAgenda[]; vacia: string }) {
                 {c.servicioNombre} · {textoEstado(c.estado)}
               </span>
             </span>
-            <span className="text-sm tabular-nums first-letter:uppercase">
+            <span className="inline-block text-sm tabular-nums first-letter:uppercase">
               {formatearFechaLarga(c.inicio)} · {horaLocal(c.inicio)}
             </span>
           </EnlaceCita>

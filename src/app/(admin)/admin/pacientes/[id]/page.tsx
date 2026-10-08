@@ -38,7 +38,7 @@ export default async function FichaPaciente({ params }: Props) {
             {citas.map((c) => (
               <li key={c.id}>
                 <Link href={`/admin/citas/${c.id}`} prefetch={false} className="flex min-h-12 flex-wrap items-center justify-between gap-2 px-4 py-2 hover:bg-papel">
-                  <span className="first-letter:uppercase">
+                  <span className="inline-block first-letter:uppercase">
                     {formatearFechaLarga(c.inicio)} · {horaLocal(c.inicio)}
                   </span>
                   <span className="text-sm text-gris-600">

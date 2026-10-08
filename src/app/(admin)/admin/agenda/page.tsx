@@ -64,12 +64,12 @@ export default async function Agenda({ searchParams }: Props) {
           </Link>
           <h1 className="ml-2 font-sans text-lg md:text-xl">
             {vista === "dia" ? (
-              <span className="first-letter:uppercase">
+              <span className="inline-block first-letter:uppercase">
                 {new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", weekday: "long", day: "numeric", month: "long" }).format(instante(fecha, 720))}
               </span>
             ) : (
               <>
-                <span className="lg:hidden first-letter:uppercase">
+                <span className="inline-block first-letter:uppercase lg:hidden">
                   {new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", weekday: "long", day: "numeric", month: "long" }).format(instante(fecha, 720))}
                 </span>
                 <span className="hidden lg:inline">
