@@ -19,3 +19,6 @@ next-env.d.ts
 
 # Fotos originales sin procesar (pueden contener pacientes): nunca al repositorio
 fotos-originales/
+
+# Almacenamiento local de archivos subidos (originales privados, consentimientos y versiones públicas)
+/almacenamiento/
