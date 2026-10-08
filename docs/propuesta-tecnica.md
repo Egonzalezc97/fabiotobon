@@ -352,3 +352,15 @@ Cambios frente al brief: agenda antes que CRM completo; seguridad y pruebas dent
 - [Ley 35 de 1989 — ética del odontólogo colombiano](https://www.dmsjuridica.com/buscador_20179478954/legislacion/leyes/2024/02/06/ley-35-de-1989/?pdf=4847)
 
 Esta propuesta no reemplaza un concepto jurídico; los puntos regulatorios requieren revisión de un abogado antes de construir sobre ellos.
+
+---
+
+## Anexo 2026-10-08 · WhatsApp: número y coexistencia (para la fase 5)
+
+- Número actual: +57 323 345 6845. Hoy Fabio lo usa como personal y del consultorio; va a separarse (fecha pendiente).
+- Requisito de Esteban: Fabio debe poder seguir respondiendo desde ese número aunque el agente esté activo. Esto exige **coexistencia** (app WhatsApp Business + API en el mismo número).
+- Condiciones conocidas de la coexistencia (por verificar al implementar): el número debe estar en **WhatsApp Business** (no WhatsApp normal); la app debe abrirse al menos cada 13 días; se pierden grupos sincronizados, mensajes temporales, "ver una vez", copias de seguridad y listas de difusión; las respuestas que Fabio envía desde la app llegan a la API como eventos de eco (`smb_message_echoes`).
+- **Twilio no está confirmado** como proveedor con coexistencia. Sí la documentan 360dialog, Infobip, Telnyx y respond.io. Verificar con Twilio antes de la fase 5; si no la soporta, la elección de proveedor se reabre (DPA).
+- Reglas del agente derivadas:
+  - Cuando llega un eco (Fabio respondió desde la app), el agente se pausa en esa conversación por un tiempo configurable; el panel permite reanudarlo.
+  - Mientras el número sea también personal, **todas** sus conversaciones llegarían al sistema: hace falta una lista de contactos que el agente ignora y cuyos mensajes no se guardan. Recomendación: no activar el agente hasta separar el número.

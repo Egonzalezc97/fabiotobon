@@ -16,3 +16,6 @@ next-env.d.ts
 
 # Configuración local de Claude Code
 .claude/settings.local.json
+
+# Fotos originales sin procesar (pueden contener pacientes): nunca al repositorio
+fotos-originales/
