@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requerirAdmin } from "@/lib/auth/servidor";
+import { requerirPanel } from "@/lib/auth/servidor";
 import { db } from "@/lib/db";
 import { actualizarPaciente, crearPaciente, DatosPacienteInvalidos, DocumentoDuplicado } from "@/modules/pacientes";
 
@@ -27,7 +27,7 @@ function traducir(error: unknown): EstadoPaciente {
 }
 
 export async function crearPacienteAccion(_previo: EstadoPaciente, f: FormData): Promise<EstadoPaciente> {
-  const admin = await requerirAdmin();
+  const admin = await requerirPanel();
   let id: string;
   try {
     id = (await crearPaciente(db(), datos(f), { userId: admin.userId })).id;
@@ -38,7 +38,7 @@ export async function crearPacienteAccion(_previo: EstadoPaciente, f: FormData):
 }
 
 export async function actualizarPacienteAccion(_previo: EstadoPaciente, f: FormData): Promise<EstadoPaciente> {
-  const admin = await requerirAdmin();
+  const admin = await requerirPanel();
   const estado = texto(f, "estado") === "inactivo" ? "inactivo" : "activo";
   try {
     await actualizarPaciente(db(), texto(f, "id"), { ...datos(f), estado }, { userId: admin.userId });

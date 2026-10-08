@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requerirAdmin } from "@/lib/auth/servidor";
+import { requerirPanel } from "@/lib/auth/servidor";
 import { db } from "@/lib/db";
 import { esFechaLocal, fechaLocal, horaLocal } from "@/modules/agenda/tiempo";
 import { leerParametros } from "@/modules/configuracion";
@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Nueva cita" };
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export default async function NuevaCita({ searchParams }: Props) {
-  const admin = await requerirAdmin();
+  const admin = await requerirPanel();
   const sp = await searchParams;
   const inicio = typeof sp.inicio === "string" ? new Date(sp.inicio) : null;
   const valido = inicio && !Number.isNaN(inicio.getTime());

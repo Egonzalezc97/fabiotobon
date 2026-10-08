@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requerirAdmin } from "@/lib/auth/servidor";
+import { requerirPanel } from "@/lib/auth/servidor";
 import { db } from "@/lib/db";
 import { listarBloqueos } from "@/modules/agenda/bloqueos";
 import { fechaLocal, horaLocal, instante, sumarDias } from "@/modules/agenda/tiempo";
@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Bloqueos" };
 const DIA = new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", weekday: "long", day: "numeric", month: "long" });
 
 export default async function Bloqueos() {
-  await requerirAdmin();
+  await requerirPanel();
   const hoy = fechaLocal(new Date());
   const [bloqueos, { granularidadMin }] = await Promise.all([
     listarBloqueos(db(), { inicio: instante(hoy), fin: instante(sumarDias(hoy, 366)) }),

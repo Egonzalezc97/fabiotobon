@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requerirAdmin } from "@/lib/auth/servidor";
+import { requerirPanel } from "@/lib/auth/servidor";
 import { db } from "@/lib/db";
 import { formatearCelular } from "@/lib/telefono";
 import { buscarPacientes } from "@/modules/pacientes";
@@ -13,7 +13,7 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 
 // Búsqueda mínima para agendar. El CRM completo (tabla, filtros, pagos) es la fase 4.
 export default async function Pacientes({ searchParams }: Props) {
-  const admin = await requerirAdmin();
+  const admin = await requerirPanel();
   const { q } = await searchParams;
   const termino = typeof q === "string" ? q : "";
   const resultados = termino.trim().length >= 2 ? await buscarPacientes(db(), termino, { userId: admin.userId }) : null;

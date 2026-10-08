@@ -2,14 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requerirAdmin } from "@/lib/auth/servidor";
+import { requerirPanel } from "@/lib/auth/servidor";
 import { db } from "@/lib/db";
 import { cambiarEstadoCita, cancelarCita, crearCita, reprogramarCita, resolverRevisionVinculando, type EstadoCita } from "@/modules/agenda/citas";
 import { ErrorAgenda, FueraDeHorario } from "@/modules/agenda/errores";
 import { esFechaLocal, fechaLocal, instante } from "@/modules/agenda/tiempo";
 import { buscarPacientes, crearPaciente, DatosPacienteInvalidos, DocumentoDuplicado, type ResultadoBusqueda } from "@/modules/pacientes";
 
-// Acciones del panel sobre citas. Cada una exige admin con segundo factor (requerirAdmin) antes de todo.
+// Acciones del panel sobre citas. Cada una exige sesión con segundo factor y rol admin o asistente (requerirPanel) antes de todo.
 
 export type EstadoAccion = { error?: string; fueraDeHorario?: boolean; ok?: string };
 
@@ -31,12 +31,12 @@ function traducir(error: unknown): EstadoAccion {
 }
 
 export async function buscarPacientesAccion(termino: string): Promise<ResultadoBusqueda[]> {
-  const admin = await requerirAdmin();
+  const admin = await requerirPanel();
   return buscarPacientes(db(), String(termino), { userId: admin.userId });
 }
 
 export async function crearCitaAccion(_previo: EstadoAccion, f: FormData): Promise<EstadoAccion> {
-  const admin = await requerirAdmin();
+  const admin = await requerirPanel();
   const inicio = leerInicio(f);
   if (!inicio) return { error: "Elige fecha y hora." };
   const servicioId = texto(f, "servicioId");
@@ -79,7 +79,7 @@ export async function crearCitaAccion(_previo: EstadoAccion, f: FormData): Promi
 }
 
 export async function reprogramarAccion(_previo: EstadoAccion, f: FormData): Promise<EstadoAccion> {
-  const admin = await requerirAdmin();
+  const admin = await requerirPanel();
   const inicio = leerInicio(f);
   if (!inicio) return { error: "Elige fecha y hora." };
   try {
@@ -95,7 +95,7 @@ export async function reprogramarAccion(_previo: EstadoAccion, f: FormData): Pro
 }
 
 export async function cancelarAccion(_previo: EstadoAccion, f: FormData): Promise<EstadoAccion> {
-  const admin = await requerirAdmin();
+  const admin = await requerirPanel();
   try {
     await cancelarCita(db(), texto(f, "citaId"), { actor: { tipo: "usuario", id: admin.userId }, motivo: texto(f, "motivo") });
   } catch (error) {
@@ -108,7 +108,7 @@ export async function cancelarAccion(_previo: EstadoAccion, f: FormData): Promis
 const ESTADOS: EstadoCita[] = ["pendiente", "confirmada", "cumplida", "no_asistio"];
 
 export async function cambiarEstadoAccion(_previo: EstadoAccion, f: FormData): Promise<EstadoAccion> {
-  const admin = await requerirAdmin();
+  const admin = await requerirPanel();
   const estado = texto(f, "estado") as EstadoCita;
   if (!ESTADOS.includes(estado)) return { error: "Estado no válido." };
   try {
@@ -121,7 +121,7 @@ export async function cambiarEstadoAccion(_previo: EstadoAccion, f: FormData): P
 }
 
 export async function resolverRevisionAccion(_previo: EstadoAccion, f: FormData): Promise<EstadoAccion> {
-  const admin = await requerirAdmin();
+  const admin = await requerirPanel();
   try {
     await resolverRevisionVinculando(db(), texto(f, "citaId"), { actor: { tipo: "usuario", id: admin.userId } });
   } catch (error) {

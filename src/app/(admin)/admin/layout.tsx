@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requerirAdmin } from "@/lib/auth/servidor";
+import { requerirPanel } from "@/lib/auth/servidor";
 import { db } from "@/lib/db";
 import { datosSitio } from "@/lib/sitio";
 import { contarPendientesDeRevisar } from "@/modules/agenda/consultas";
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default async function LayoutAdmin({ children }: { children: React.ReactNode }) {
   // La autorización se decide aquí, en el servidor, en cada petición (y además en cada página y acción).
-  const admin = await requerirAdmin();
+  const admin = await requerirPanel();
   const [pendientes, { modoDemo }] = await Promise.all([contarPendientesDeRevisar(db()), datosSitio()]);
   const totalPorRevisar = pendientes.webNuevas + pendientes.enRevision;
 
@@ -39,11 +39,13 @@ export default async function LayoutAdmin({ children }: { children: React.ReactN
                 <span className="tabular-nums">{totalPorRevisar}</span> por revisar
               </Link>
             )}
-            <span className="hidden font-sans text-sm text-gris-600 md:inline">{admin.nombre}</span>
+            <span className="hidden font-sans text-sm text-gris-600 md:inline">
+              {admin.nombre} · {admin.rol === "admin" ? "Administrador" : "Asistente"}
+            </span>
             <BotonCerrarSesion />
           </div>
         </div>
-        <Navegacion webNuevas={pendientes.webNuevas} enRevision={pendientes.enRevision} />
+        <Navegacion webNuevas={pendientes.webNuevas} enRevision={pendientes.enRevision} esAdmin={admin.rol === "admin"} />
       </header>
       <main className="mx-auto max-w-[96rem] px-4 py-6 md:px-6 md:py-8">{children}</main>
     </div>

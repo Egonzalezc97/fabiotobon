@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requerirAdmin } from "@/lib/auth/servidor";
+import { requerirPanel } from "@/lib/auth/servidor";
 import { db } from "@/lib/db";
 import { formatearCelular } from "@/lib/telefono";
 import { marcarCitaVista, NOMBRES_ESTADO, transicionesPermitidas, type EstadoCita } from "@/modules/agenda/citas";
@@ -40,7 +40,7 @@ function describir(valor: unknown): string {
 }
 
 export default async function DetalleCita({ params }: Props) {
-  const admin = await requerirAdmin();
+  const admin = await requerirPanel();
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const detalle = await obtenerDetalleCita(db(), id, { userId: admin.userId });

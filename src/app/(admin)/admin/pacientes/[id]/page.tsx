@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requerirAdmin } from "@/lib/auth/servidor";
+import { requerirPanel } from "@/lib/auth/servidor";
 import { db } from "@/lib/db";
 import { NOMBRES_ESTADO, type EstadoCita } from "@/modules/agenda/estados";
 import { formatearFechaLarga, horaLocal } from "@/modules/agenda/tiempo";
@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Paciente" };
 type Props = { params: Promise<{ id: string }> };
 
 export default async function FichaPaciente({ params }: Props) {
-  const admin = await requerirAdmin();
+  const admin = await requerirPanel();
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const ficha = await obtenerFicha(db(), id, { userId: admin.userId });

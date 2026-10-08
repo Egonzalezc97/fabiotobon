@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requerirAdmin } from "@/lib/auth/servidor";
+import { requerirPanel } from "@/lib/auth/servidor";
 import { TIPOS_DOCUMENTO } from "@/modules/pacientes/documento";
 import { Titulo } from "@/components/panel/ui";
 import { FormularioPaciente } from "../formulario-paciente";
@@ -7,7 +7,7 @@ import { FormularioPaciente } from "../formulario-paciente";
 export const metadata: Metadata = { title: "Nuevo paciente" };
 
 export default async function NuevoPaciente() {
-  await requerirAdmin();
+  await requerirPanel();
   return (
     <div className="grid max-w-2xl gap-6">
       <Titulo>Nuevo paciente</Titulo>

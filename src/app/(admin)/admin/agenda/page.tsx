@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requerirAdmin } from "@/lib/auth/servidor";
+import { requerirPanel } from "@/lib/auth/servidor";
 import { db } from "@/lib/db";
 import { listarBloqueos } from "@/modules/agenda/bloqueos";
 import { listarCitasAgenda } from "@/modules/agenda/consultas";
@@ -33,7 +33,7 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 const MES = new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "long" });
 
 export default async function Agenda({ searchParams }: Props) {
-  await requerirAdmin();
+  await requerirPanel();
   const sp = await searchParams;
   const hoy = fechaLocal(new Date());
   const fecha = typeof sp.fecha === "string" && esFechaLocal(sp.fecha) ? sp.fecha : hoy;

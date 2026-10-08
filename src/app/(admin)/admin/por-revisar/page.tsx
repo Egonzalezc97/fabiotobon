@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requerirAdmin } from "@/lib/auth/servidor";
+import { requerirPanel } from "@/lib/auth/servidor";
 import { db } from "@/lib/db";
 import { listarPorRevisar, type CitaAgenda } from "@/modules/agenda/consultas";
 import { formatearFechaLarga, horaLocal } from "@/modules/agenda/tiempo";
@@ -33,7 +33,7 @@ function Lista({ citas, vacia }: { citas: CitaAgenda[]; vacia: string }) {
 
 // Mientras no haya avisos (fase 3), Fabio se entera aquí de las reservas web. Se marcan como vistas al abrirlas.
 export default async function PorRevisar() {
-  await requerirAdmin();
+  await requerirPanel();
   const [revision, nuevas] = await Promise.all([listarPorRevisar(db(), "revision"), listarPorRevisar(db(), "nuevas")]);
   return (
     <div className="grid max-w-3xl gap-8">

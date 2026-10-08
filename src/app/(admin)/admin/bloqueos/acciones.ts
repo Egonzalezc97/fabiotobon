@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requerirAdmin } from "@/lib/auth/servidor";
+import { requerirPanel } from "@/lib/auth/servidor";
 import { db } from "@/lib/db";
 import { crearBloqueo, eliminarBloqueo, intervaloDeDias, type ResolucionCita } from "@/modules/agenda/bloqueos";
 import { BloqueoConConflictos, ErrorAgenda } from "@/modules/agenda/errores";
@@ -62,7 +62,7 @@ function leerResoluciones(f: FormData): ResolucionCita[] | string {
 }
 
 export async function crearBloqueoAccion(_previo: EstadoBloqueo, f: FormData): Promise<EstadoBloqueo> {
-  const admin = await requerirAdmin();
+  const admin = await requerirPanel();
   const intervalo = leerIntervalo(f);
   if (!intervalo || !(intervalo.fin > intervalo.inicio)) return { error: "Revisa las fechas y horas del bloqueo." };
   const resoluciones = leerResoluciones(f);
@@ -95,7 +95,7 @@ export async function crearBloqueoAccion(_previo: EstadoBloqueo, f: FormData): P
 }
 
 export async function eliminarBloqueoAccion(f: FormData): Promise<void> {
-  const admin = await requerirAdmin();
+  const admin = await requerirPanel();
   await eliminarBloqueo(db(), texto(f, "id"), { actor: { tipo: "usuario", id: admin.userId } });
   revalidatePath("/admin", "layout");
 }
