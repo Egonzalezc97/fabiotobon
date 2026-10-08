@@ -54,11 +54,62 @@ export interface Auditoria {
   user_agent: string | null;
 }
 
+export interface Bloqueo {
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  dia_completo: Generated<boolean>;
+  fin: Timestamp;
+  id: Generated<string>;
+  inicio: Timestamp;
+  motivo: Generated<string>;
+}
+
+export interface Cita {
+  actualizada_en: Generated<Timestamp>;
+  creada_en: Generated<Timestamp>;
+  estado: string;
+  fin: Timestamp;
+  id: Generated<string>;
+  inicio: Timestamp;
+  notas_internas: Generated<string>;
+  origen: string;
+  paciente_id: string;
+  revision: string | null;
+  servicio_id: string;
+  vista_en: Timestamp | null;
+}
+
+export interface CitaEvento {
+  actor_id: string | null;
+  actor_tipo: string;
+  antes: Json | null;
+  cita_id: string;
+  despues: Json | null;
+  detalle: Generated<Json>;
+  id: Generated<Int8>;
+  ocurrido_en: Generated<Timestamp>;
+  tipo: string;
+}
+
 export interface Configuracion {
   actualizado_en: Generated<Timestamp>;
   clave: string;
   descripcion: Generated<string>;
   valor: Json;
+}
+
+export interface Consentimiento {
+  aceptado_en: Generated<Timestamp>;
+  cita_id: string | null;
+  id: Generated<string>;
+  ip: string | null;
+  origen: string;
+  paciente_id: string;
+  texto: string;
+  texto_sha256: string;
+  tipo: string;
+  user_agent: string | null;
+  version: string;
 }
 
 export interface HorarioLaboral {
@@ -67,6 +118,27 @@ export interface HorarioLaboral {
   hora_fin: string;
   hora_inicio: string;
   id: Generated<string>;
+}
+
+export interface IntentoVerificacion {
+  creado_en: Generated<Timestamp>;
+  exitoso: boolean;
+  id: Generated<Int8>;
+  ip: string | null;
+}
+
+export interface Paciente {
+  actualizado_en: Generated<Timestamp>;
+  celular: string | null;
+  celular_verificado_en: Timestamp | null;
+  correo: string | null;
+  creado_en: Generated<Timestamp>;
+  estado: Generated<string>;
+  id: Generated<string>;
+  nombre: string;
+  notas: Generated<string>;
+  numero_documento: string | null;
+  tipo_documento: string | null;
 }
 
 export interface Servicio {
@@ -94,6 +166,27 @@ export interface Session {
   updatedAt: Timestamp;
   userAgent: string | null;
   userId: string;
+}
+
+export interface SolicitudReserva {
+  celular: string;
+  cita_id: string | null;
+  consentimiento_sha256: string;
+  consentimiento_version: string;
+  correo: string | null;
+  creada_en: Generated<Timestamp>;
+  estado: Generated<string>;
+  expira_en: Timestamp;
+  id: Generated<string>;
+  inicio: Timestamp;
+  ip: string | null;
+  nombre: string;
+  numero_documento: string | null;
+  servicio_id: string;
+  tipo_documento: string | null;
+  token_sha256: string;
+  user_agent: string | null;
+  verificada_en: Timestamp | null;
 }
 
 export interface TwoFactor {
@@ -124,6 +217,18 @@ export interface Usuario {
   user_id: string;
 }
 
+export interface VerificacionCelular {
+  celular: string;
+  codigo_hmac: string;
+  consumida_en: Timestamp | null;
+  creada_en: Generated<Timestamp>;
+  expira_en: Timestamp;
+  id: Generated<string>;
+  intentos: Generated<number>;
+  ip: string | null;
+  solicitud_id: string | null;
+}
+
 export interface Verification {
   createdAt: Generated<Timestamp>;
   expiresAt: Timestamp;
@@ -136,12 +241,20 @@ export interface Verification {
 export interface DB {
   account: Account;
   auditoria: Auditoria;
+  bloqueo: Bloqueo;
+  cita: Cita;
+  cita_evento: CitaEvento;
   configuracion: Configuracion;
+  consentimiento: Consentimiento;
   horario_laboral: HorarioLaboral;
+  intento_verificacion: IntentoVerificacion;
+  paciente: Paciente;
   servicio: Servicio;
   session: Session;
+  solicitud_reserva: SolicitudReserva;
   twoFactor: TwoFactor;
   user: User;
   usuario: Usuario;
+  verificacion_celular: VerificacionCelular;
   verification: Verification;
 }

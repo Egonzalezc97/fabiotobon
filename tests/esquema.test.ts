@@ -4,7 +4,7 @@ import path from "node:path";
 import { sql } from "kysely";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { cerrarDb, db, pool } from "@/lib/db";
-import { CARPETA_MIGRACIONES, migrar } from "@/lib/db/migraciones";
+import { CARPETA_MIGRACIONES, leerMigraciones, migrar } from "@/lib/db/migraciones";
 import { limpiarDatos } from "./ayudas";
 
 afterAll(cerrarDb);
@@ -14,7 +14,8 @@ describe("migraciones", () => {
   it("son idempotentes: una segunda corrida no aplica nada", async () => {
     const resultado = await migrar(pool());
     expect(resultado.aplicadas).toEqual([]);
-    expect(resultado.yaAplicadas).toEqual(["0001_base.sql", "0002_horario_laboral.sql"]);
+    expect(resultado.yaAplicadas).toEqual((await leerMigraciones()).map((m) => m.nombre));
+    expect(resultado.yaAplicadas.length).toBeGreaterThanOrEqual(4);
   });
 
   it("rechazan una migración aplicada que fue editada", async () => {

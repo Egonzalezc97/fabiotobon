@@ -13,6 +13,8 @@ export default async function prepararBase() {
   try {
     await pool.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
     await migrar(pool);
+    // Copia de la configuración recién migrada (parámetros por defecto) para restaurarla entre pruebas.
+    await pool.query("CREATE TABLE _configuracion_base AS SELECT * FROM configuracion");
   } finally {
     await pool.end();
   }

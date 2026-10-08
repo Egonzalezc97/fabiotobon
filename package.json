@@ -23,8 +23,11 @@
     "usuario:reiniciar-2fa": "node --env-file-if-exists=.env --import tsx scripts/usuario-reiniciar-2fa.ts"
   },
   "dependencies": {
+    "@date-fns/tz": "1.5.0",
     "better-auth": "1.7.5",
+    "date-fns": "4.4.0",
     "kysely": "0.29.6",
+    "libphonenumber-js": "1.13.13",
     "next": "16.3.8",
     "pg": "8.23.0",
     "qrcode": "1.5.4",

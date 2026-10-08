@@ -5,13 +5,18 @@ import { db as dbApp, type BaseDeDatos } from "../src/lib/db";
 
 const ORIGEN = "http://localhost:3000";
 
-/** Borra los datos (no el esquema) entre pruebas. `auditoria` se vacía saltándose su protección. */
+/**
+ * Borra los datos (no el esquema) entre pruebas y deja `configuracion` como recién migrada.
+ * `auditoria` y los historiales se vacían saltándose su protección (TRUNCATE no dispara los triggers de fila).
+ */
 export async function limpiarDatos(db: BaseDeDatos) {
   await sql`
     ALTER TABLE auditoria DISABLE TRIGGER USER;
     TRUNCATE auditoria, usuario, "twoFactor", "session", "account", "verification", "user",
-             servicio, configuracion, horario_laboral RESTART IDENTITY CASCADE;
+             servicio, configuracion, horario_laboral, intento_verificacion, verificacion_celular,
+             solicitud_reserva, consentimiento, cita_evento, cita, bloqueo, paciente RESTART IDENTITY CASCADE;
     ALTER TABLE auditoria ENABLE TRIGGER USER;
+    INSERT INTO configuracion SELECT * FROM _configuracion_base;
   `.execute(db);
 }
 
