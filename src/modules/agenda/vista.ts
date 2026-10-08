@@ -64,3 +64,28 @@ export function rangoVisible(horario: HorarioSemanal, extremos: { inicioMin: num
   const hasta = Math.max(...todos.map((t) => t.finMin));
   return { desde: Math.max(0, Math.floor(desde / 60) * 60), hasta: Math.min(24 * 60, Math.ceil(hasta / 60) * 60) };
 }
+
+export type ResumenDia = {
+  citas: CitaAgenda[];
+  /** Bloqueos que tocan el día sin cubrirlo completo. */
+  bloqueosParciales: BloqueoAgenda[];
+  /** Bloqueo que cubre el día entero (el primero, si hay varios). */
+  bloqueoDiaCompleto: BloqueoAgenda | null;
+};
+
+/** Agrupa citas (por día de inicio) y bloqueos (por días que tocan) para la vista de mes. */
+export function resumenPorDia(dias: FechaLocal[], citas: CitaAgenda[], bloqueos: BloqueoAgenda[]): Map<FechaLocal, ResumenDia> {
+  const mapa = new Map<FechaLocal, ResumenDia>();
+  for (const dia of dias) {
+    const inicio = instante(dia);
+    const fin = instante(dia, 24 * 60);
+    const tocan = bloqueos.filter((b) => b.inicio < fin && b.fin > inicio);
+    const completo = tocan.find((b) => b.inicio <= inicio && b.fin >= fin) ?? null;
+    mapa.set(dia, {
+      citas: citas.filter((c) => c.inicio >= inicio && c.inicio < fin).sort((a, b) => a.inicio.getTime() - b.inicio.getTime()),
+      bloqueosParciales: tocan.filter((b) => b !== completo),
+      bloqueoDiaCompleto: completo,
+    });
+  }
+  return mapa;
+}

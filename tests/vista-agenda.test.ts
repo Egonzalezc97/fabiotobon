@@ -37,3 +37,23 @@ describe("lista del día", () => {
     expect(rangoVisible(horario, [{ inicioMin: 19 * 60, finMin: 19 * 60 + 30 }])).toEqual({ desde: 8 * 60, hasta: 20 * 60 });
   });
 });
+
+describe("resumen por día (vista de mes)", () => {
+  it("agrupa citas por día de inicio y distingue bloqueos parciales de días completos", async () => {
+    const { resumenPorDia } = await import("@/modules/agenda/vista");
+    const martes = "2026-11-03";
+    const resumen = resumenPorDia(
+      [LUNES, martes],
+      [cita("10:00", "10:30"), cita("08:00", "08:30")],
+      [
+        { id: "p", inicio: h("15:00"), fin: h("16:00"), dia_completo: false, motivo: "" },
+        { id: "c", inicio: instante(martes), fin: instante("2026-11-04"), dia_completo: true, motivo: "Congreso" },
+      ],
+    );
+    expect(resumen.get(LUNES)?.citas.map((c) => horaLocal(c.inicio))).toEqual(["08:00", "10:00"]);
+    expect(resumen.get(LUNES)?.bloqueosParciales.map((b) => b.id)).toEqual(["p"]);
+    expect(resumen.get(LUNES)?.bloqueoDiaCompleto).toBeNull();
+    expect(resumen.get(martes)?.bloqueoDiaCompleto?.id).toBe("c");
+    expect(resumen.get(martes)?.citas).toEqual([]);
+  });
+});
