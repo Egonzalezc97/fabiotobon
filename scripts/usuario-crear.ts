@@ -1,15 +1,19 @@
-// Uso: npm run usuario:crear -- --correo fabio@ejemplo.com --nombre "Fabio Tobón"
+// Uso: npm run usuario:crear -- --nombre "Fabio Tobón Casas" [--usuario ftobonc] [--correo fabio@ejemplo.com] [--rol admin|asistente]
+// Respaldo por consola: lo normal es crear usuarios desde Panel → Usuarios.
 import { auth } from "../src/lib/auth";
-import { crearUsuarioAdmin } from "../src/lib/auth/usuarios";
+import { crearUsuario, nombreUsuarioDisponible, sugerirNombreUsuario, type Rol } from "../src/lib/auth/usuarios";
 import { cerrarDb, db } from "../src/lib/db";
 import { argumento, pedirContrasenaNueva, preguntar } from "./consola";
 
 try {
-  const correo = argumento("correo") ?? (await preguntar("Correo: "));
-  const nombre = argumento("nombre") ?? (await preguntar("Nombre: "));
+  const nombre = argumento("nombre") ?? (await preguntar("Nombre completo: "));
+  const sugerido = await nombreUsuarioDisponible(db(), sugerirNombreUsuario(nombre));
+  const usuario = argumento("usuario") ?? ((await preguntar(`Nombre de usuario [${sugerido}]: `)) || sugerido);
+  const correo = argumento("correo") ?? (await preguntar("Correo (opcional, recomendado para recuperar la contraseña): "));
+  const rol = (argumento("rol") ?? "admin") as Rol;
   const contrasena = await pedirContrasenaNueva();
-  const { userId } = await crearUsuarioAdmin(auth(), db(), { correo, nombre, contrasena });
-  console.log(`Usuario creado (${userId}). Al primer ingreso se le pedirá activar la verificación en dos pasos.`);
+  const { userId } = await crearUsuario(auth(), db(), { nombre, usuario, correo, rol, contrasena, temporal: false }, null);
+  console.log(`Usuario "${usuario.toLowerCase()}" creado (${userId}). Al primer ingreso se le pedirá activar la verificación en dos pasos.`);
 } catch (error) {
   console.error((error as Error).message);
   process.exitCode = 1;

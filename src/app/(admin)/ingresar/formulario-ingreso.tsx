@@ -29,13 +29,13 @@ export function FormularioIngreso() {
     const datos = new FormData(evento.currentTarget);
     setCargando(true);
     setError(null);
-    const { data, error } = await authCliente.signIn.email({
-      email: String(datos.get("correo")),
+    const { data, error } = await authCliente.signIn.username({
+      username: String(datos.get("usuario")).trim(),
       password: String(datos.get("contrasena")),
     });
     setCargando(false);
     if (error) {
-      setError(mensajeDeError(error.status, "Correo o contraseña incorrectos."));
+      setError(mensajeDeError(error.status, "Usuario o contraseña incorrectos."));
       return;
     }
     if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
@@ -67,7 +67,16 @@ export function FormularioIngreso() {
     return (
       <form method="post" onSubmit={enviarCredenciales} className="space-y-5" noValidate>
         <TituloAcceso>Ingresar</TituloAcceso>
-        <Campo etiqueta="Correo" id="correo" name="correo" type="email" autoComplete="username" required />
+        <Campo
+          etiqueta="Usuario"
+          id="usuario"
+          name="usuario"
+          autoComplete="username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          required
+        />
         <Campo
           etiqueta="Contraseña"
           id="contrasena"

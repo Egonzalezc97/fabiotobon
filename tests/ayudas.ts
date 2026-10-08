@@ -39,7 +39,13 @@ export async function llamar(auth: Auth, ruta: string, cuerpo?: unknown, cookie?
   const texto = await respuesta.text();
   return {
     status: respuesta.status,
-    cuerpo: texto ? JSON.parse(texto) : null,
+    cuerpo: (() => {
+      try {
+        return texto ? JSON.parse(texto) : null;
+      } catch {
+        return texto;
+      }
+    })(),
     cookies: respuesta.headers.getSetCookie(),
   };
 }

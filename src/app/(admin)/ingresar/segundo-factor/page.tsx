@@ -12,7 +12,8 @@ export const metadata: Metadata = {
 
 export default async function SegundoFactor() {
   const estado = await estadoAccesoActual();
-  if (estado.tipo === "admin") redirect("/admin");
+  if (estado.tipo === "autorizado") redirect("/admin");
+  if (estado.tipo === "debe_cambiar_contrasena") redirect("/ingresar/cambiar-contrasena");
   if (estado.tipo !== "sin_segundo_factor") redirect("/ingresar");
 
   return (

@@ -213,11 +213,14 @@ export interface User {
   name: string;
   twoFactorEnabled: boolean | null;
   updatedAt: Generated<Timestamp>;
+  username: string | null;
 }
 
 export interface Usuario {
   activo: Generated<boolean>;
   creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  debe_cambiar_contrasena: Generated<boolean>;
   rol: string;
   user_id: string;
 }

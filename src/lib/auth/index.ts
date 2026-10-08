@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { createAuthMiddleware, getIP, isAPIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
-import { twoFactor } from "better-auth/plugins";
+import { twoFactor, username } from "better-auth/plugins";
 import { registrar } from "@/modules/auditoria";
 import { db, type BaseDeDatos } from "../db";
 import { env } from "../env";
@@ -9,7 +9,10 @@ import { env } from "../env";
 export const NOMBRE_APP = "Fabio Tobón Odontología";
 
 // Rutas de Better Auth cuyos fallos se auditan (intentos de ingreso).
-const RUTAS_INGRESO = new Set(["/sign-in/email", "/two-factor/verify-totp", "/two-factor/verify-backup-code"]);
+const RUTAS_INGRESO = new Set(["/sign-in/username", "/two-factor/verify-totp", "/two-factor/verify-backup-code"]);
+
+/** Nombre de usuario: solo letras, números y punto, 3 a 30 caracteres (se guarda en minúsculas). */
+export const FORMATO_USUARIO = /^[a-z0-9.]{3,30}$/;
 
 /** Id del usuario si la respuesta de Better Auth corresponde a una sesión abierta. */
 function idUsuarioIngresado(respuesta: unknown): string | null {
@@ -31,6 +34,8 @@ export function crearAuth(opciones: OpcionesAuth) {
     secret: opciones.secret,
     database: { db, type: "postgres" },
     telemetry: { enabled: false },
+    // Se ingresa con nombre de usuario; el ingreso por correo queda cerrado (una sola puerta).
+    disabledPaths: ["/sign-in/email"],
     emailAndPassword: {
       enabled: true,
       // Sin registro público: las cuentas se crean con `npm run usuario:crear`.
@@ -47,13 +52,20 @@ export function crearAuth(opciones: OpcionesAuth) {
       window: 60,
       max: 60,
       customRules: {
-        "/sign-in/email": { window: 300, max: 5 },
+        "/sign-in/username": { window: 300, max: 5 },
+        "/change-password": { window: 300, max: 5 },
         "/two-factor/verify-totp": { window: 300, max: 5 },
         "/two-factor/verify-backup-code": { window: 300, max: 5 },
         "/two-factor/enable": { window: 300, max: 5 },
       },
     },
     plugins: [
+      username({
+        displayUsername: false,
+        minUsernameLength: 3,
+        maxUsernameLength: 30,
+        usernameValidator: (u) => /^[a-zA-Z0-9.]+$/.test(u),
+      }),
       twoFactor({
         issuer: NOMBRE_APP,
         // El segundo factor solo queda activo tras comprobar un primer código.
@@ -87,7 +99,7 @@ export function crearAuth(opciones: OpcionesAuth) {
         // Con segundo factor activado, la contraseña correcta todavía no es un ingreso: el plugin
         // (que corre después de este hook) cambia la respuesta por twoFactorRedirect y descarta la sesión.
         // El ingreso se registra cuando se verifica el código.
-        if (ctx.path === "/sign-in/email") {
+        if (ctx.path === "/sign-in/username") {
           const usuario = await db
             .selectFrom("user")
             .select("twoFactorEnabled")
