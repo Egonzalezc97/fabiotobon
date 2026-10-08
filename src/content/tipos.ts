@@ -15,7 +15,6 @@ export type CasoAntesDespues = {
 
 export type ContenidoLanding = {
   hero: {
-    etiqueta: string | null;
     titular: string | null;
     entradilla: string | null;
   };

@@ -32,10 +32,12 @@ function Horario({ horario }: { horario: LineaHorario[] }) {
 
 export function Hero({
   contenido,
+  especialidad,
   whatsapp,
   horario,
 }: {
   contenido: ContenidoLanding["hero"];
+  especialidad: string | null;
   whatsapp: string | null;
   horario: LineaHorario[];
 }) {
@@ -45,7 +47,7 @@ export function Hero({
         <div className={`relative z-10 flex flex-col px-5 pt-6 md:pr-10 md:pt-4 ${MARGEN_IZQUIERDO}`}>
           <div className="md:my-auto md:py-8">
             <p className="font-sans text-xs uppercase tracking-[0.3em] text-gris-600">
-              <TextoOPendiente texto={contenido.etiqueta} dato="etiqueta del encabezado" />
+              <TextoOPendiente texto={especialidad} dato="especialidad" />
             </p>
             <h1
               id="titulo-hero"

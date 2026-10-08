@@ -40,13 +40,20 @@ export async function guardarContactoAccion(_previo: EstadoConfiguracion, f: For
     await guardarContacto(
       db(),
       {
+        especialidad: campo("especialidad"),
         direccion: campo("direccion"),
         ciudad: campo("ciudad"),
+        referencia: campo("referencia"),
         telefono: campo("telefono"),
         whatsapp: campo("whatsapp"),
         mensajeWhatsapp: campo("mensajeWhatsapp"),
         correo: campo("correo"),
         registroProfesional: campo("registroProfesional"),
+        instagram: campo("instagram"),
+        facebook: campo("facebook"),
+        urgenciasActiva: f.get("urgenciasActiva") === "si",
+        urgenciasTexto: campo("urgenciasTexto"),
+        urgenciasTelefono: campo("urgenciasTelefono"),
       },
       admin.userId,
     );

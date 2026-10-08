@@ -4,7 +4,6 @@ import type { ContenidoLanding } from "../tipos";
 // Solo se usa con DEMO_CONTENT=true. Fabio no ha aprobado ninguna de estas frases.
 export const contenidoDemo: ContenidoLanding = {
   hero: {
-    etiqueta: "Consultorio odontológico",
     titular: "Tu sonrisa, revisada con calma.",
     entradilla:
       "Empiezas con una valoración: revisamos tu caso, te explicamos las opciones y decides con toda la información.",

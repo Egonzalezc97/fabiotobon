@@ -12,6 +12,13 @@ export function normalizarCelular(texto: unknown): string | null {
   return numero.number;
 }
 
+/** Normaliza cualquier teléfono válido (fijo o celular) a E.164. Colombia por defecto. */
+export function normalizarTelefono(texto: unknown): string | null {
+  if (typeof texto !== "string") return null;
+  const numero = parsePhoneNumberFromString(texto.trim(), "CO");
+  return numero?.isValid() ? numero.number : null;
+}
+
 /** "•••• 4567" para mostrar sin exponer el número completo. */
 export function enmascararCelular(e164: string): string {
   return `•••• ${e164.slice(-4)}`;
@@ -20,5 +27,8 @@ export function enmascararCelular(e164: string): string {
 /** "+57 300 123 4567" para el panel. */
 export function formatearCelular(e164: string | null): string {
   if (!e164) return "";
+  // Celulares de Colombia en el agrupamiento local 3-3-4 (la librería da 3-7).
+  const celularCo = /^\+57(3\d{2})(\d{3})(\d{4})$/.exec(e164);
+  if (celularCo) return `+57 ${celularCo[1]} ${celularCo[2]} ${celularCo[3]}`;
   return parsePhoneNumberFromString(e164)?.formatInternational() ?? e164;
 }

@@ -1,4 +1,5 @@
 import { BloqueImagen } from "@/components/publico/bloque-imagen";
+import { FranjaUrgencias, Redes, Ubicacion } from "@/components/publico/contacto";
 import { BotonAgendar, EnlaceWhatsapp } from "@/components/publico/enlaces";
 import { Pendiente, TextoOPendiente } from "@/components/publico/pendiente";
 import type { ContenidoLanding } from "@/content";
@@ -39,11 +40,7 @@ export function Contacto({
 
           <dl className="mt-12 grid gap-x-6 gap-y-8 sm:grid-cols-2">
             <Dato titulo="Dirección">
-              <TextoOPendiente texto={contacto.direccion} dato="dirección" />
-              <br />
-              <span className="text-gris-600">
-                <TextoOPendiente texto={contacto.ciudad} dato="ciudad" />
-              </span>
+              <Ubicacion contacto={contacto} />
             </Dato>
             <Dato titulo="Horario">
               {horario.length === 0 ? (
@@ -78,7 +75,14 @@ export function Contacto({
                 <Pendiente dato="correo" />
               )}
             </Dato>
+            {(contacto.instagram || contacto.facebook) && (
+              <Dato titulo="Redes">
+                <Redes contacto={contacto} />
+              </Dato>
+            )}
           </dl>
+
+          {contacto.urgencias && <FranjaUrgencias urgencias={contacto.urgencias} className="mt-12" />}
 
           <div className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-5">
             <BotonAgendar />
@@ -87,7 +91,7 @@ export function Contacto({
         </div>
 
         <div className="lg:col-span-5 lg:col-start-8 lg:pt-24">
-          <BloqueImagen proporcion="1 / 1" tono="medio" leyenda="Mapa · pendiente de dirección" />
+          <BloqueImagen proporcion="1 / 1" tono="medio" leyenda="Fotografía del consultorio pendiente · 1:1" />
         </div>
       </div>
     </section>

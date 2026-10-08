@@ -8,9 +8,11 @@ import { listarHorarioSemanal, resumirHorario } from "@/modules/agenda/horario";
 import {
   baseTieneContenidoDemo,
   ContactoInvalido,
+  enlaceComoLlegar,
   enlaceWhatsapp,
   guardarContacto,
   leerContacto,
+  normalizarRed,
   normalizarWhatsapp,
 } from "@/modules/configuracion";
 import { formatearDuracion, formatearPrecio, listarServiciosLanding } from "@/modules/servicios";
@@ -63,7 +65,7 @@ describe("semilla de demostración", () => {
     const antes = await leerContacto(db());
     await cargarSemillaDemo(pool(), DESARROLLO);
     expect(await leerContacto(db())).toEqual(antes);
-    expect(antes).toMatchObject({ direccion: null, telefono: null, correo: null, registroProfesional: null });
+    expect(antes).toMatchObject({ telefono: null, correo: null, registroProfesional: null });
   });
 
   it("se niega a correr en producción", async () => {
@@ -117,8 +119,24 @@ describe("contacto", () => {
     );
   });
 
+  it("la migración deja especialidad, dirección, referencia, redes y urgencias reales", async () => {
+    expect(await leerContacto(db())).toMatchObject({
+      especialidad: "Odontología integral",
+      direccion: "Carrera 23 N.º 47-80",
+      ciudad: "Manizales",
+      referencia: "Sobre la avenida Santander, al lado de Coldeportes",
+      instagram: "https://instagram.com/dr.fabiotobon",
+      facebook: "https://facebook.com/dr.fabiotobon",
+      enlaceComoLlegar: "https://www.google.com/maps/search/?api=1&query=Carrera+23+47-80+Manizales",
+      urgencias: { texto: "Urgencias 24 horas", telefono: "+57 323 345 6845", enlace: "tel:+573233456845" },
+    });
+  });
+
   it("valida y normaliza los valores; lo inválido queda como pendiente", async () => {
-    await db().deleteFrom("configuracion").where("clave", "like", "contacto%").execute();
+    await db()
+      .deleteFrom("configuracion")
+      .where((eb) => eb.or([eb("clave", "like", "contacto%"), eb("clave", "like", "redes%"), eb("clave", "like", "urgencias%"), eb("clave", "=", "especialidad")]))
+      .execute();
     await db()
       .insertInto("configuracion")
       .values([
@@ -126,17 +144,30 @@ describe("contacto", () => {
         { clave: "contacto_correo", valor: JSON.stringify("no-es-correo") },
         { clave: "contacto_direccion", valor: JSON.stringify("   ") },
         { clave: "contacto_telefono", valor: JSON.stringify("(604) 000 0000") },
+        { clave: "redes_instagram", valor: JSON.stringify("https://otro-sitio.com/dr.fabiotobon") },
+        { clave: "urgencias_activa", valor: JSON.stringify(true) },
+        { clave: "urgencias_telefono", valor: JSON.stringify("123") },
       ])
       .execute();
     expect(await leerContacto(db())).toEqual({
+      especialidad: null,
       direccion: null,
       ciudad: null,
+      referencia: null,
       telefono: "(604) 000 0000",
       whatsapp: "573001234567",
       mensajeWhatsapp: null,
       correo: null,
       registroProfesional: null,
+      instagram: null,
+      facebook: null,
+      urgenciasActiva: true,
+      urgenciasTexto: null,
+      urgenciasTelefono: null,
       enlaceWhatsapp: "https://wa.me/573001234567",
+      enlaceComoLlegar: null,
+      // Activa pero sin texto ni número válidos: no se muestra.
+      urgencias: null,
     });
   });
 
@@ -148,7 +179,22 @@ describe("contacto", () => {
   });
 
   it("el panel guarda, valida y borra datos de contacto, y deja auditoría", async () => {
-    const vacio = { direccion: "", ciudad: "", telefono: "", whatsapp: "", mensajeWhatsapp: "", correo: "", registroProfesional: "" };
+    const vacio = {
+      especialidad: "",
+      direccion: "",
+      ciudad: "",
+      referencia: "",
+      telefono: "",
+      whatsapp: "",
+      mensajeWhatsapp: "",
+      correo: "",
+      registroProfesional: "",
+      instagram: "",
+      facebook: "",
+      urgenciasActiva: false,
+      urgenciasTexto: "",
+      urgenciasTelefono: "",
+    };
     await guardarContacto(db(), { ...vacio, whatsapp: "+57 323 345 6845", mensajeWhatsapp: "Hola", ciudad: "Ciudad de prueba" }, "fabio");
     expect(await leerContacto(db())).toMatchObject({
       whatsapp: "573233456845",
@@ -159,9 +205,58 @@ describe("contacto", () => {
     await expect(guardarContacto(db(), { ...vacio, correo: "x@" }, "fabio")).rejects.toBeInstanceOf(ContactoInvalido);
     // Vaciar un campo lo borra: la web vuelve a mostrar "[PENDIENTE: …]".
     await guardarContacto(db(), vacio, "fabio");
-    expect(await leerContacto(db())).toMatchObject({ whatsapp: null, enlaceWhatsapp: null, ciudad: null });
+    expect(await leerContacto(db())).toMatchObject({ whatsapp: null, enlaceWhatsapp: null, ciudad: null, especialidad: null, urgencias: null });
     const auditoria = await db().selectFrom("auditoria").select("accion").where("accion", "=", "contacto.actualizado").execute();
     expect(auditoria).toHaveLength(2);
+  });
+
+  it("guarda redes y urgencias normalizadas, y no activa urgencias sin número", async () => {
+    const base = {
+      especialidad: "Odontología integral",
+      direccion: "Carrera 23 N.º 47-80",
+      ciudad: "Manizales",
+      referencia: "Al lado de Coldeportes",
+      telefono: "",
+      whatsapp: "",
+      mensajeWhatsapp: "",
+      correo: "",
+      registroProfesional: "",
+      instagram: "@dr.fabiotobon",
+      facebook: "https://www.facebook.com/dr.fabiotobon/",
+      urgenciasActiva: true,
+      urgenciasTexto: "Urgencias 24 horas",
+      urgenciasTelefono: "323 345 6845",
+    };
+    await guardarContacto(db(), base, "fabio");
+    expect(await leerContacto(db())).toMatchObject({
+      instagram: "https://instagram.com/dr.fabiotobon",
+      facebook: "https://facebook.com/dr.fabiotobon",
+      urgenciasTelefono: "+573233456845",
+      urgencias: { enlace: "tel:+573233456845" },
+    });
+    await expect(guardarContacto(db(), { ...base, urgenciasTelefono: "" }, "fabio")).rejects.toBeInstanceOf(ContactoInvalido);
+    await expect(guardarContacto(db(), { ...base, instagram: "https://evil.example/x" }, "fabio")).rejects.toBeInstanceOf(ContactoInvalido);
+    await expect(guardarContacto(db(), { ...base, especialidad: "x".repeat(61) }, "fabio")).rejects.toBeInstanceOf(ContactoInvalido);
+    // Apagada: se guarda el número pero la franja no sale.
+    await guardarContacto(db(), { ...base, urgenciasActiva: false }, "fabio");
+    expect(await leerContacto(db())).toMatchObject({ urgenciasActiva: false, urgenciasTelefono: "+573233456845", urgencias: null });
+  });
+
+  it("arma el enlace de Cómo llegar sin N.º ni #", () => {
+    expect(enlaceComoLlegar("Carrera 23 N.º 47-80", "Manizales")).toBe(
+      "https://www.google.com/maps/search/?api=1&query=Carrera+23+47-80+Manizales",
+    );
+    expect(enlaceComoLlegar("Calle 10 # 5-20")).toBe("https://www.google.com/maps/search/?api=1&query=Calle+10+5-20");
+    expect(enlaceComoLlegar("Avenida Norte No. 4")).toBe("https://www.google.com/maps/search/?api=1&query=Avenida+Norte+4");
+  });
+
+  it("acepta redes solo de su dominio oficial", () => {
+    expect(normalizarRed("dr.fabiotobon", "instagram")).toBe("https://instagram.com/dr.fabiotobon");
+    expect(normalizarRed("https://www.instagram.com/dr.fabiotobon/", "instagram")).toBe("https://instagram.com/dr.fabiotobon");
+    expect(normalizarRed("http://instagram.com/dr.fabiotobon", "instagram")).toBeNull();
+    expect(normalizarRed("https://instagram.com.evil.example/x", "instagram")).toBeNull();
+    expect(normalizarRed("https://instagram.com/", "instagram")).toBeNull();
+    expect(normalizarRed("https://facebook.com/dr.fabiotobon", "instagram")).toBeNull();
   });
 
   it("arma el enlace de WhatsApp con el mensaje codificado", () => {

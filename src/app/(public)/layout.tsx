@@ -8,9 +8,13 @@ import { Pie } from "./_secciones/pie";
 
 export async function generateMetadata(): Promise<Metadata> {
   await connection();
-  const { modoDemo } = await datosSitio();
-  // Un sitio con datos ficticios no se indexa.
-  return modoDemo ? { robots: { index: false, follow: false } } : {};
+  const { modoDemo, contacto } = await datosSitio();
+  const titulo = contacto.especialidad ? `Fabio Tobón · ${contacto.especialidad}` : "Fabio Tobón Odontología";
+  return {
+    title: { absolute: titulo, template: "%s · Fabio Tobón" },
+    // Un sitio con datos ficticios no se indexa.
+    ...(modoDemo ? { robots: { index: false, follow: false } } : {}),
+  };
 }
 
 export default async function LayoutPublico({ children }: { children: React.ReactNode }) {

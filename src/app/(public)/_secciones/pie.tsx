@@ -1,13 +1,28 @@
 import { Logo } from "@/components/marca";
+import { Redes, Ubicacion } from "@/components/publico/contacto";
 import { Pendiente, TextoOPendiente } from "@/components/publico/pendiente";
-import type { DatosContacto } from "@/modules/configuracion";
+import type { ContactoPublico } from "@/modules/configuracion";
 
-export function Pie({ contacto }: { contacto: DatosContacto }) {
+export function Pie({ contacto }: { contacto: ContactoPublico }) {
   return (
     <footer className="border-t border-gris-200 bg-papel">
       <div className="mx-auto grid max-w-[84rem] gap-10 px-5 pb-28 pt-14 md:px-10 lg:grid-cols-12 lg:gap-x-6">
         <Logo nombre="logo-completo" etiqueta="Doctor Fabio Tobón Casas" className="h-36 text-gris-800 lg:col-span-4" />
         <div className="grid gap-6 self-end font-sans text-sm text-gris-600 sm:grid-cols-2 lg:col-span-7 lg:col-start-6">
+          <div>
+            Consultorio
+            <Ubicacion contacto={contacto} compacta className="text-gris-800" />
+          </div>
+          <div>
+            Redes
+            {contacto.instagram || contacto.facebook ? (
+              <Redes contacto={contacto} className="mt-1" />
+            ) : (
+              <span className="block text-gris-800">
+                <Pendiente dato="redes" />
+              </span>
+            )}
+          </div>
           <p>
             Registro profesional
             <br />

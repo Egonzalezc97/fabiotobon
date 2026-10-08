@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { requerirAdmin } from "@/lib/auth/servidor";
 import { db } from "@/lib/db";
-import { leerContacto, leerParametros, leerTextoAutorizacion } from "@/modules/configuracion";
+import { datosContacto, leerContacto, leerParametros, leerTextoAutorizacion } from "@/modules/configuracion";
 import { Alerta, Titulo } from "@/components/panel/ui";
 import { FormularioConfiguracion } from "./formulario-configuracion";
 import { FormularioContacto } from "./formulario-contacto";
@@ -16,17 +16,7 @@ export default async function Configuracion() {
       <Titulo>Configuración</Titulo>
       <section className="grid gap-2">
         <h2 className="font-sans text-sm uppercase tracking-[0.14em] text-gris-600">Datos de contacto</h2>
-        <FormularioContacto
-          contacto={{
-            direccion: contacto.direccion,
-            ciudad: contacto.ciudad,
-            telefono: contacto.telefono,
-            whatsapp: contacto.whatsapp,
-            mensajeWhatsapp: contacto.mensajeWhatsapp,
-            correo: contacto.correo,
-            registroProfesional: contacto.registroProfesional,
-          }}
-        />
+        <FormularioContacto contacto={datosContacto(contacto)} />
       </section>
       <section className="grid gap-2">
         <h2 className="font-sans text-sm uppercase tracking-[0.14em] text-gris-600">Agenda y reserva</h2>

@@ -5,7 +5,7 @@ export type { CasoAntesDespues, ContenidoLanding, ImagenSitio } from "./tipos";
 
 // Contenido real: vacío hasta que Fabio entregue textos. Cada null se muestra como "[PENDIENTE: …]".
 const contenidoReal: ContenidoLanding = {
-  hero: { etiqueta: null, titular: null, entradilla: null },
+  hero: { titular: null, entradilla: null },
   antesDespues: { nota: null, casos: [] },
   servicios: { entradilla: null, notaPrecios: null, cierre: null },
   contacto: { entradilla: null },

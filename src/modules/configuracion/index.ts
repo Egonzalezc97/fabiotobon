@@ -1,4 +1,5 @@
 import type { BaseDeDatos } from "@/lib/db";
+import { formatearCelular, normalizarTelefono } from "@/lib/telefono";
 import { registrar } from "@/modules/auditoria";
 
 /**
@@ -6,8 +7,12 @@ import { registrar } from "@/modules/auditoria";
  * Un valor ausente o inválido se devuelve como null y la interfaz muestra "[PENDIENTE: …]".
  */
 export type DatosContacto = {
+  /** Etiqueta del encabezado y título del sitio (p. ej. "Odontología integral"). */
+  especialidad: string | null;
   direccion: string | null;
   ciudad: string | null;
+  /** Cómo llegar en palabras; la usan el sitio, los mensajes y el agente. */
+  referencia: string | null;
   telefono: string | null;
   /** Solo dígitos, con indicativo de país (p. ej. 57…), listo para wa.me. */
   whatsapp: string | null;
@@ -15,29 +20,66 @@ export type DatosContacto = {
   mensajeWhatsapp: string | null;
   correo: string | null;
   registroProfesional: string | null;
+  /** URL completa del perfil. */
+  instagram: string | null;
+  facebook: string | null;
+  urgenciasActiva: boolean;
+  urgenciasTexto: string | null;
+  /** E.164 (+57…). */
+  urgenciasTelefono: string | null;
 };
 
+type CampoTexto = Exclude<keyof DatosContacto, "urgenciasActiva">;
+
 const CLAVES = {
+  especialidad: "especialidad",
   direccion: "contacto_direccion",
   ciudad: "contacto_ciudad",
+  referencia: "contacto_referencia",
   telefono: "contacto_telefono",
   whatsapp: "contacto_whatsapp",
   mensajeWhatsapp: "contacto_whatsapp_mensaje",
   correo: "contacto_correo",
   registroProfesional: "registro_profesional",
-} as const satisfies Record<keyof DatosContacto, string>;
+  instagram: "redes_instagram",
+  facebook: "redes_facebook",
+  urgenciasTexto: "urgencias_texto",
+  urgenciasTelefono: "urgencias_telefono",
+} as const satisfies Record<CampoTexto, string>;
+
+const CLAVE_URGENCIAS_ACTIVA = "urgencias_activa";
+
+/** Longitud máxima por campo (el resto, 300). */
+const MAXIMOS: Partial<Record<CampoTexto, number>> = {
+  especialidad: 60,
+  referencia: 200,
+  mensajeWhatsapp: 200,
+  urgenciasTexto: 60,
+};
 
 /** Enlace wa.me con el mensaje inicial (si hay). */
 export function enlaceWhatsapp(numero: string, mensaje?: string | null): string {
   return mensaje ? `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}` : `https://wa.me/${numero}`;
 }
 
+/**
+ * Búsqueda de Google Maps para "Cómo llegar". Se quitan "N.º", "No." y "#", que confunden la búsqueda:
+ * "Carrera 23 N.º 47-80" + "Manizales" → query=Carrera+23+47-80+Manizales.
+ */
+export function enlaceComoLlegar(direccion: string, ciudad?: string | null): string {
+  const consulta = [direccion.replace(/\bN\.?\s*[º°]\.?|\bNo\.|#/gi, " "), ciudad ?? ""]
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(consulta).replace(/%20/g, "+")}`;
+}
+
 export const CLAVE_CONTENIDO_DEMO = "contenido_demo";
 
-function texto(valor: unknown): string | null {
+function texto(valor: unknown, maximo = 300): string | null {
   if (typeof valor !== "string") return null;
   const limpio = valor.trim();
-  return limpio.length > 0 && limpio.length <= 300 ? limpio : null;
+  return limpio.length > 0 && limpio.length <= maximo ? limpio : null;
 }
 
 export function normalizarWhatsapp(valor: unknown): string | null {
@@ -52,28 +94,88 @@ function correo(valor: unknown): string | null {
   return t && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t) ? t : null;
 }
 
-export type ContactoPublico = DatosContacto & { enlaceWhatsapp: string | null };
+const REDES = {
+  instagram: { dominio: "instagram.com", hosts: ["instagram.com", "www.instagram.com"] },
+  facebook: { dominio: "facebook.com", hosts: ["facebook.com", "www.facebook.com", "m.facebook.com"] },
+} as const;
+
+/**
+ * Perfil de una red como URL https del dominio oficial. Acepta la URL o solo el usuario ("dr.fabiotobon", "@dr.fabiotobon").
+ * Cualquier otro dominio se rechaza: el sitio no enlaza a sitios de terceros desde este campo.
+ */
+export function normalizarRed(valor: unknown, red: keyof typeof REDES): string | null {
+  const t = texto(valor);
+  if (!t) return null;
+  const { dominio, hosts } = REDES[red];
+  const usuario = /^@?([A-Za-z0-9._]{1,60})$/.exec(t);
+  if (usuario) return `https://${dominio}/${usuario[1]}`;
+  try {
+    const url = new URL(t);
+    const ruta = url.pathname.replace(/\/+$/, "");
+    if (url.protocol !== "https:" || !(hosts as readonly string[]).includes(url.hostname) || ruta.length < 2) return null;
+    return `https://${dominio}${ruta}`;
+  } catch {
+    return null;
+  }
+}
+
+export type UrgenciasPublicas = { texto: string; telefono: string; enlace: string };
+
+export type ContactoPublico = DatosContacto & {
+  enlaceWhatsapp: string | null;
+  enlaceComoLlegar: string | null;
+  /** Solo si está activa y tiene texto y número válidos. */
+  urgencias: UrgenciasPublicas | null;
+};
+
+function leerTextos(valor: (clave: string) => unknown): Omit<DatosContacto, "urgenciasActiva"> {
+  const t = (k: CampoTexto) => texto(valor(CLAVES[k]), MAXIMOS[k]);
+  return {
+    especialidad: t("especialidad"),
+    direccion: t("direccion"),
+    ciudad: t("ciudad"),
+    referencia: t("referencia"),
+    telefono: t("telefono"),
+    whatsapp: normalizarWhatsapp(valor(CLAVES.whatsapp)),
+    mensajeWhatsapp: t("mensajeWhatsapp"),
+    correo: correo(valor(CLAVES.correo)),
+    registroProfesional: t("registroProfesional"),
+    instagram: normalizarRed(valor(CLAVES.instagram), "instagram"),
+    facebook: normalizarRed(valor(CLAVES.facebook), "facebook"),
+    urgenciasTexto: t("urgenciasTexto"),
+    urgenciasTelefono: normalizarTelefono(valor(CLAVES.urgenciasTelefono)),
+  };
+}
 
 export async function leerContacto(db: BaseDeDatos): Promise<ContactoPublico> {
   const filas = await db
     .selectFrom("configuracion")
     .select(["clave", "valor"])
-    .where("clave", "in", Object.values(CLAVES))
+    .where("clave", "in", [...Object.values(CLAVES), CLAVE_URGENCIAS_ACTIVA])
     .execute();
   const valor = (clave: string) => filas.find((f) => f.clave === clave)?.valor;
 
-  const whatsapp = normalizarWhatsapp(valor(CLAVES.whatsapp));
-  const mensajeWhatsapp = texto(valor(CLAVES.mensajeWhatsapp));
+  const datos = { ...leerTextos(valor), urgenciasActiva: valor(CLAVE_URGENCIAS_ACTIVA) === true };
   return {
-    direccion: texto(valor(CLAVES.direccion)),
-    ciudad: texto(valor(CLAVES.ciudad)),
-    telefono: texto(valor(CLAVES.telefono)),
-    whatsapp,
-    mensajeWhatsapp,
-    correo: correo(valor(CLAVES.correo)),
-    registroProfesional: texto(valor(CLAVES.registroProfesional)),
-    enlaceWhatsapp: whatsapp ? enlaceWhatsapp(whatsapp, mensajeWhatsapp) : null,
+    ...datos,
+    enlaceWhatsapp: datos.whatsapp ? enlaceWhatsapp(datos.whatsapp, datos.mensajeWhatsapp) : null,
+    enlaceComoLlegar: datos.direccion ? enlaceComoLlegar(datos.direccion, datos.ciudad) : null,
+    urgencias:
+      datos.urgenciasActiva && datos.urgenciasTexto && datos.urgenciasTelefono
+        ? {
+            texto: datos.urgenciasTexto,
+            telefono: formatearCelular(datos.urgenciasTelefono),
+            enlace: `tel:${datos.urgenciasTelefono}`,
+          }
+        : null,
   };
+}
+
+/** Solo los datos guardados (sin los enlaces calculados), p. ej. para el formulario del panel. */
+export function datosContacto(contacto: ContactoPublico): DatosContacto {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { enlaceWhatsapp, enlaceComoLlegar, urgencias, ...datos } = contacto;
+  return datos;
 }
 
 export class ContactoInvalido extends Error {
@@ -83,41 +185,70 @@ export class ContactoInvalido extends Error {
   }
 }
 
+export type EntradaContacto = Record<CampoTexto, string> & { urgenciasActiva: boolean };
+
+const NOMBRES_CAMPO: Record<CampoTexto, string> = {
+  especialidad: "La especialidad",
+  direccion: "La dirección",
+  ciudad: "La ciudad",
+  referencia: "La referencia de ubicación",
+  telefono: "El teléfono",
+  whatsapp: "El WhatsApp",
+  mensajeWhatsapp: "El mensaje inicial",
+  correo: "El correo",
+  registroProfesional: "El registro profesional",
+  instagram: "Instagram",
+  facebook: "Facebook",
+  urgenciasTexto: "El texto de urgencias",
+  urgenciasTelefono: "El número de urgencias",
+};
+
 /**
  * Guarda los datos de contacto desde el panel. Un campo vacío se borra (la web muestra "[PENDIENTE: …]").
- * Queda en auditoría.
+ * Se guardan normalizados (redes como URL, números en E.164). Queda en auditoría.
  */
-export async function guardarContacto(
-  db: BaseDeDatos,
-  datos: Record<keyof DatosContacto, string>,
-  actorId: string,
-): Promise<void> {
-  const limpio = Object.fromEntries(
-    (Object.keys(CLAVES) as (keyof DatosContacto)[]).map((k) => [k, (datos[k] ?? "").trim()]),
-  ) as Record<keyof DatosContacto, string>;
-  for (const [k, v] of Object.entries(limpio)) {
-    if (v.length > 300) throw new ContactoInvalido(`El campo ${k} admite hasta 300 caracteres.`);
+export async function guardarContacto(db: BaseDeDatos, datos: EntradaContacto, actorId: string): Promise<void> {
+  const campos = Object.keys(CLAVES) as CampoTexto[];
+  const limpio = Object.fromEntries(campos.map((k) => [k, (datos[k] ?? "").trim()])) as Record<CampoTexto, string>;
+  for (const k of campos) {
+    const maximo = MAXIMOS[k] ?? 300;
+    if (limpio[k].length > maximo) throw new ContactoInvalido(`${NOMBRES_CAMPO[k]} admite hasta ${maximo} caracteres.`);
   }
   if (limpio.whatsapp && !normalizarWhatsapp(limpio.whatsapp)) {
     throw new ContactoInvalido("El WhatsApp debe incluir el indicativo del país, por ejemplo +57 323 345 6845.");
   }
   if (limpio.correo && !correo(limpio.correo)) throw new ContactoInvalido("Revisa el correo.");
-  if (limpio.mensajeWhatsapp.length > 200) throw new ContactoInvalido("El mensaje inicial admite hasta 200 caracteres.");
+  for (const red of ["instagram", "facebook"] as const) {
+    if (limpio[red]) {
+      const url = normalizarRed(limpio[red], red);
+      if (!url) throw new ContactoInvalido(`${NOMBRES_CAMPO[red]}: escribe el usuario o la dirección de ${REDES[red].dominio}.`);
+      limpio[red] = url;
+    }
+  }
+  if (limpio.urgenciasTelefono) {
+    const numero = normalizarTelefono(limpio.urgenciasTelefono);
+    if (!numero) throw new ContactoInvalido("Revisa el número de urgencias, por ejemplo +57 323 345 6845.");
+    limpio.urgenciasTelefono = numero;
+  }
+  if (datos.urgenciasActiva && (!limpio.urgenciasTexto || !limpio.urgenciasTelefono)) {
+    throw new ContactoInvalido("Para mostrar urgencias escribe el texto y el número de llamada.");
+  }
 
   await db.transaction().execute(async (trx) => {
-    for (const k of Object.keys(CLAVES) as (keyof DatosContacto)[]) {
-      const clave = CLAVES[k];
-      if (!limpio[k]) {
-        await trx.deleteFrom("configuracion").where("clave", "=", clave).execute();
-        continue;
-      }
-      const valor = JSON.stringify(limpio[k]);
-      await trx
+    const guardar = (clave: string, valor: string) =>
+      trx
         .insertInto("configuracion")
         .values({ clave, valor })
         .onConflict((oc) => oc.column("clave").doUpdateSet({ valor }))
         .execute();
+    for (const k of campos) {
+      if (!limpio[k]) {
+        await trx.deleteFrom("configuracion").where("clave", "=", CLAVES[k]).execute();
+        continue;
+      }
+      await guardar(CLAVES[k], JSON.stringify(limpio[k]));
     }
+    await guardar(CLAVE_URGENCIAS_ACTIVA, JSON.stringify(datos.urgenciasActiva));
     await registrar(trx, { actorId, actorTipo: "usuario", accion: "contacto.actualizado" });
   });
 }
