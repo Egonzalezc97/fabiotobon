@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: fabiotobon
+          POSTGRES_PASSWORD: fabiotobon_ci
+          POSTGRES_DB: fabiotobon_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fabiotobon"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL_TEST: postgres://fabiotobon:fabiotobon_ci@localhost:5432/fabiotobon_test
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      # Node 22 trae npm 10, que no lee igual el lockfile generado con npm 11.
+      - name: npm 11
+        run: npm install -g npm@11.6.2
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Linter
+        run: npm run lint
+
+      - name: Tipos
+        run: npm run typecheck
+
+      - name: Pruebas
+        run: npm test
+
+      - name: Compilación
+        run: npm run build

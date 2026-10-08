@@ -9,3 +9,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Generados por Next y TypeScript
+*.tsbuildinfo
+next-env.d.ts

@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+/* Tokens provisionales. La paleta y las tipografías definitivas llegan con la dirección visual aprobada (fase 1). */
+@theme {
+  --color-tinta: #1f2328;
+  --color-tinta-suave: #5b6370;
+  --color-linea: #e3e6ea;
+  --color-superficie: #f4f5f7;
+  --color-acento: #1f5fad;
+  --color-acento-fuerte: #174c8c;
+}
+
+html {
+  color: var(--color-tinta);
+  background: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,16 @@
+# Solo para desarrollo local. Las credenciales de aquí no se usan en ningún otro entorno.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: fabiotobon
+      POSTGRES_PASSWORD: fabiotobon_local
+      POSTGRES_DB: fabiotobon
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/docker-init:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  pgdata:
