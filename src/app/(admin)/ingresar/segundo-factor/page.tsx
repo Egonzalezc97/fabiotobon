@@ -4,7 +4,7 @@ import { estadoAccesoActual } from "@/lib/auth/servidor";
 import { ActivarSegundoFactor } from "./activar-segundo-factor";
 
 export const metadata: Metadata = {
-  title: "Activar verificación en dos pasos · Fabio Tobón Odontología",
+  title: "Activar verificación en dos pasos",
   robots: { index: false, follow: false },
 };
 

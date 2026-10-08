@@ -53,6 +53,38 @@ export async function crearUsuarioAdmin(
   return { userId: usuario.id };
 }
 
+/**
+ * Para cuando se pierde el celular y los códigos de respaldo: borra el segundo factor y cierra
+ * todas las sesiones. En el siguiente ingreso la cuenta tendrá que activarlo de nuevo.
+ */
+export async function reiniciarSegundoFactor(
+  auth: Auth,
+  db: BaseDeDatos,
+  datos: { correo: string; motivo: string },
+): Promise<void> {
+  const correo = normalizarCorreo(datos.correo);
+  const motivo = datos.motivo.trim();
+  if (motivo.length < 5) throw new Error("Escribe el motivo del reinicio (mínimo 5 caracteres).");
+
+  const ctx = await auth.$context;
+  const encontrado = await ctx.internalAdapter.findUserByEmail(correo);
+  if (!encontrado) throw new Error("No existe una cuenta con ese correo.");
+  const userId = encontrado.user.id;
+
+  await db.transaction().execute(async (trx) => {
+    await trx.deleteFrom("twoFactor").where("userId", "=", userId).execute();
+    await trx.updateTable("user").set({ twoFactorEnabled: false, updatedAt: new Date() }).where("id", "=", userId).execute();
+    await trx.deleteFrom("session").where("userId", "=", userId).execute();
+    await registrar(trx, {
+      actorTipo: "sistema",
+      accion: "usuario.segundo_factor_reiniciado",
+      entidad: "usuario",
+      entidadId: userId,
+      detalle: { motivo: motivo.slice(0, 200) },
+    });
+  });
+}
+
 /** Cambia la contraseña y cierra todas las sesiones abiertas de esa cuenta. */
 export async function cambiarContrasena(
   auth: Auth,

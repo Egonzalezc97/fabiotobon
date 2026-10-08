@@ -1,18 +1,50 @@
 @import "tailwindcss";
 
-/* Tokens provisionales. La paleta y las tipografías definitivas llegan con la dirección visual aprobada (fase 1). */
+/* Dirección visual A · "Papel y grafito". Una familia de grises cálidos y un solo azul. */
 @theme {
-  --color-tinta: #1f2328;
-  --color-tinta-suave: #5b6370;
-  --color-linea: #e3e6ea;
-  --color-superficie: #f4f5f7;
-  --color-acento: #1f5fad;
-  --color-acento-fuerte: #174c8c;
+  --color-papel: #fafaf8;
+  --color-gris-100: #efeeea;
+  --color-gris-200: #d9d7d0;
+  --color-gris-400: #8a877f; /* solo texto grande o sobre grafito */
+  --color-gris-600: #5c5a54;
+  --color-gris-800: #2b2a27;
+  --color-grafito: #161614;
+  --color-azul: #1f4f99;
+  --color-azul-fuerte: #183f7a;
+
+  /* Alias usados por el panel */
+  --color-tinta: #2b2a27;
+  --color-tinta-suave: #5c5a54;
+  --color-linea: #d9d7d0;
+  --color-superficie: #fafaf8;
+  --color-acento: #1f4f99;
+  --color-acento-fuerte: #183f7a;
+}
+
+@theme inline {
+  --font-sans: var(--font-jost), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
 }
 
 html {
-  color: var(--color-tinta);
+  color: var(--color-gris-800);
   background: #fff;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-azul);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -23,4 +55,11 @@ html {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Logos en línea: escalan por altura y toman el color del texto. */
+.marca > svg {
+  display: block;
+  height: 100%;
+  width: auto;
 }

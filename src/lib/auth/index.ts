@@ -110,6 +110,24 @@ export function crearAuth(opciones: OpcionesAuth) {
 
 export type Auth = ReturnType<typeof crearAuth>;
 
+/**
+ * Atiende una petición HTTP de Better Auth. El limitador de intentos responde 429 antes de que
+ * corran los hooks, así que esos rechazos se auditan aquí. Nunca se lee el cuerpo (correo, contraseña).
+ */
+export async function atenderPeticionAuth(a: Auth, db: BaseDeDatos, peticion: Request): Promise<Response> {
+  const respuesta = await a.handler(peticion);
+  if (respuesta.status === 429) {
+    await registrar(db, {
+      actorTipo: "anonimo",
+      accion: "sesion.limitada",
+      detalle: { ruta: new URL(peticion.url).pathname.replace(/^\/api\/auth/, "") },
+      ip: getIP(peticion, a.options),
+      userAgent: peticion.headers.get("user-agent"),
+    });
+  }
+  return respuesta;
+}
+
 const global = globalThis as typeof globalThis & { __fabiotobonAuth?: Auth };
 
 /** Instancia de la aplicación, creada al primer uso con las variables de entorno. */

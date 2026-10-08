@@ -5,6 +5,10 @@ const esquema = z.object({
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET debe tener al menos 32 caracteres"),
   BETTER_AUTH_URL: z.url(),
+  DEMO_CONTENT: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
 });
 
 export type Env = z.infer<typeof esquema>;

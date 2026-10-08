@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
+import { verificarDespliegue } from "./src/lib/despliegue";
+
+// Falla `next build` y `next start` si se intenta publicar contenido de demostración en producción.
+verificarDespliegue(process.env);
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Evita que `next dev` agregue su propio bloque de reglas a CLAUDE.md.
+  agentRules: false,
   // `pg` usa módulos nativos de Node; no se empaqueta.
   serverExternalPackages: ["pg"],
   async headers() {

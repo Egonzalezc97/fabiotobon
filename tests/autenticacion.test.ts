@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { auth } from "@/lib/auth";
+import { auth, crearAuth } from "@/lib/auth";
 import { evaluarAcceso } from "@/lib/auth/acceso";
-import { cambiarContrasena, crearUsuarioAdmin } from "@/lib/auth/usuarios";
+import { cambiarContrasena, crearUsuarioAdmin, reiniciarSegundoFactor } from "@/lib/auth/usuarios";
 import { cerrarDb, db } from "@/lib/db";
 import { codigoTotp, headersConCookie, limpiarDatos, llamar, unirCookies } from "./ayudas";
 
@@ -164,5 +164,60 @@ describe("auditoría de ingresos", () => {
     expect(fallidas.map((f) => f.detalle)).toContainEqual(
       expect.objectContaining({ ruta: "/two-factor/verify-totp" }),
     );
+  });
+});
+
+describe("límite de intentos", () => {
+  it("registra en auditoría los rechazos por límite (429) sin guardar el correo", async () => {
+    await crearUsuarioAdmin(auth(), db(), { correo: CORREO, nombre: "Admin", contrasena: CONTRASENA });
+    // Instancia propia con el limitador activo (en pruebas va apagado para no interferir con el resto).
+    const conLimite = crearAuth({
+      db: db(),
+      secret: "secreto-solo-para-pruebas-automatizadas-0123456789",
+      baseURL: "http://localhost:3000",
+      limitarIntentos: true,
+    });
+    const estados: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      estados.push((await llamar(conLimite, "/sign-in/email", { email: CORREO, password: "equivocada-xxxxxxx" })).status);
+    }
+    expect(estados.slice(0, 5)).toEqual([401, 401, 401, 401, 401]);
+    expect(estados.slice(5)).toEqual([429, 429]);
+
+    const limitadas = await db().selectFrom("auditoria").selectAll().where("accion", "=", "sesion.limitada").execute();
+    expect(limitadas).toHaveLength(2);
+    expect(limitadas[0]).toMatchObject({ actor_tipo: "anonimo", ip: "203.0.113.7", detalle: { ruta: "/sign-in/email" } });
+    expect(JSON.stringify(limitadas)).not.toContain(CORREO);
+  });
+});
+
+describe("reinicio del segundo factor", () => {
+  it("borra el segundo factor, cierra las sesiones, obliga a activarlo de nuevo y queda en auditoría", async () => {
+    await adminConSegundoFactor();
+    const sesionPrevia = await ingresar();
+    expect(sesionPrevia.cuerpo).toMatchObject({ twoFactorRedirect: true });
+
+    await reiniciarSegundoFactor(auth(), db(), { correo: CORREO, motivo: "Perdió el celular" });
+
+    expect(await db().selectFrom("twoFactor").selectAll().execute()).toHaveLength(0);
+    expect(await db().selectFrom("session").selectAll().execute()).toHaveLength(0);
+
+    const nuevo = await ingresar();
+    expect(nuevo.cuerpo).not.toHaveProperty("twoFactorRedirect");
+    expect((await estado(nuevo.cookie)).tipo).toBe("sin_segundo_factor");
+
+    const registro = await db()
+      .selectFrom("auditoria")
+      .selectAll()
+      .where("accion", "=", "usuario.segundo_factor_reiniciado")
+      .executeTakeFirstOrThrow();
+    expect(registro).toMatchObject({ actor_tipo: "sistema", entidad: "usuario", detalle: { motivo: "Perdió el celular" } });
+  });
+
+  it("exige un motivo y una cuenta existente", async () => {
+    await expect(reiniciarSegundoFactor(auth(), db(), { correo: CORREO, motivo: "x" })).rejects.toThrow(/motivo/);
+    await expect(
+      reiniciarSegundoFactor(auth(), db(), { correo: "nadie@prueba.test", motivo: "Perdió el celular" }),
+    ).rejects.toThrow(/No existe/);
   });
 });

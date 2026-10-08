@@ -5,7 +5,7 @@ import { BotonCerrarSesion } from "../boton-cerrar-sesion";
 import { FormularioIngreso } from "./formulario-ingreso";
 
 export const metadata: Metadata = {
-  title: "Ingresar · Fabio Tobón Odontología",
+  title: "Ingresar",
   robots: { index: false, follow: false },
 };
 

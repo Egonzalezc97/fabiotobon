@@ -3,7 +3,7 @@ import { requerirAdmin } from "@/lib/auth/servidor";
 import { BotonCerrarSesion } from "../boton-cerrar-sesion";
 
 export const metadata: Metadata = {
-  title: "Panel · Fabio Tobón Odontología",
+  title: "Panel",
   robots: { index: false, follow: false },
 };
 

@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import { sql } from "kysely";
-import type { Auth } from "../src/lib/auth";
-import type { BaseDeDatos } from "../src/lib/db";
+import { atenderPeticionAuth, type Auth } from "../src/lib/auth";
+import { db as dbApp, type BaseDeDatos } from "../src/lib/db";
 
 const ORIGEN = "http://localhost:3000";
 
@@ -22,7 +22,9 @@ export async function llamar(auth: Auth, ruta: string, cuerpo?: unknown, cookie?
   const headers = new Headers({ origin: ORIGEN, "user-agent": "vitest", "x-forwarded-for": "203.0.113.7" });
   if (cuerpo !== undefined) headers.set("content-type", "application/json");
   if (cookie) headers.set("cookie", cookie);
-  const respuesta = await auth.handler(
+  const respuesta = await atenderPeticionAuth(
+    auth,
+    dbApp(),
     new Request(`${ORIGEN}/api/auth${ruta}`, {
       method: cuerpo === undefined ? "GET" : "POST",
       headers,
