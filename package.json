@@ -17,7 +17,7 @@
     "test:watch": "vitest",
     "db:migrar": "node --env-file-if-exists=.env --import tsx scripts/migrar.ts",
     "db:semilla-demo": "node --env-file-if-exists=.env --import tsx scripts/semilla-demo.ts",
-    "db:tipos": "node --env-file-if-exists=.env node_modules/kysely-codegen/dist/cli/bin.js --dialect postgres --out-file src/lib/db/tipos.ts --exclude-pattern schema_migrations",
+    "db:tipos": "node --env-file-if-exists=.env node_modules/kysely-codegen/dist/cli/bin.js --dialect postgres --date-parser string --out-file src/lib/db/tipos.ts --exclude-pattern schema_migrations",
     "usuario:crear": "node --env-file-if-exists=.env --import tsx scripts/usuario-crear.ts",
     "usuario:contrasena": "node --env-file-if-exists=.env --import tsx scripts/usuario-contrasena.ts",
     "usuario:reiniciar-2fa": "node --env-file-if-exists=.env --import tsx scripts/usuario-reiniciar-2fa.ts"

@@ -7,8 +7,10 @@ import {
   crearPaciente,
   DatosPacienteInvalidos,
   DocumentoDuplicado,
+  fusionarPacientes,
   obtenerFicha,
 } from "@/modules/pacientes";
+import { crearTratamiento } from "@/modules/tratamientos";
 import { formatearDocumento, normalizarDocumento } from "@/modules/pacientes/documento";
 import { limpiarDatos } from "./ayudas";
 
@@ -88,5 +90,82 @@ describe("búsqueda y ficha (auditadas)", () => {
     expect(filas.map((f) => f.accion)).toEqual(["paciente.creado", "paciente.busqueda", "paciente.leido"]);
     expect(filas[2]?.entidad_id).toBe(id);
     expect(JSON.stringify(filas)).not.toContain("José");
+  });
+});
+
+describe("historial de la ficha", () => {
+  it("guarda campo por campo el valor anterior y el nuevo, con quién", async () => {
+    const { id } = await crearPaciente(db(), base, FABIO);
+    await actualizarPaciente(db(), id, { ...base, telefono: "604 444 5566", fechaNacimiento: "1990-05-17", estado: "activo" }, FABIO);
+    // Guardar sin cambios no deja evento.
+    await actualizarPaciente(db(), id, { ...base, telefono: "604 444 5566", fechaNacimiento: "1990-05-17", estado: "activo" }, FABIO);
+    const ficha = await obtenerFicha(db(), id, FABIO);
+    expect(ficha?.eventos.map((e) => e.tipo)).toEqual(["actualizado", "creado"]);
+    expect(ficha?.eventos[0]?.cambios).toEqual({
+      telefono: { antes: null, despues: "604 444 5566" },
+      fecha_nacimiento: { antes: null, despues: "1990-05-17" },
+    });
+    expect(ficha?.paciente.fecha_nacimiento).toBe("1990-05-17");
+  });
+
+  it("rechaza fechas de nacimiento futuras o inválidas", async () => {
+    await expect(crearPaciente(db(), { ...base, fechaNacimiento: "2999-01-01" }, FABIO)).rejects.toThrow(/nacimiento/);
+  });
+});
+
+describe("fusión de fichas", () => {
+  it("mueve citas, tratamientos y consentimientos a la ficha que queda y deja eventos en todo", async () => {
+    const destino = await crearPaciente(db(), base, FABIO);
+    const origen = await crearPaciente(db(), { ...base, numeroDocumento: "52000111", nombre: "Jose Perez", celular: "3105556677" }, FABIO);
+    const servicio = await db().insertInto("servicio").values({ slug: "s", nombre: "S", duracion_min: 30 }).returning("id").executeTakeFirstOrThrow();
+    const cita = await db()
+      .insertInto("cita")
+      .values({ paciente_id: origen.id, servicio_id: servicio.id, inicio: "2026-11-02T13:00:00Z", fin: "2026-11-02T13:30:00Z", estado: "confirmada", origen: "web" })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const trat = await crearTratamiento(db(), { pacienteId: origen.id, descripcion: "Limpieza", costoTotal: 100_000 }, FABIO);
+    await db()
+      .insertInto("consentimiento")
+      .values({ paciente_id: origen.id, tipo: "tratamiento_datos", version: "v1", texto: "Texto", texto_sha256: "a".repeat(64), origen: "web" })
+      .execute();
+
+    const resumen = await fusionarPacientes(db(), { destinoId: destino.id, origenId: origen.id }, FABIO);
+    expect(resumen).toEqual({ citas: 1, tratamientos: 1, consentimientos: 1 });
+
+    expect((await db().selectFrom("cita").select("paciente_id").executeTakeFirstOrThrow()).paciente_id).toBe(destino.id);
+    expect((await db().selectFrom("tratamiento").select("paciente_id").executeTakeFirstOrThrow()).paciente_id).toBe(destino.id);
+    expect((await db().selectFrom("consentimiento").select("paciente_id").executeTakeFirstOrThrow()).paciente_id).toBe(destino.id);
+
+    const absorbida = await db().selectFrom("paciente").selectAll().where("id", "=", origen.id).executeTakeFirstOrThrow();
+    expect(absorbida).toMatchObject({ fusionado_con: destino.id, estado: "inactivo", numero_documento: null });
+    // El documento liberado ya se puede usar (una reserva futura no apunta a la ficha absorbida).
+    expect(await buscarPacientes(db(), "52000111", FABIO)).toEqual([]);
+
+    const eventosCita = await db().selectFrom("cita_evento").select("tipo").where("cita_id", "=", cita.id).execute();
+    expect(eventosCita.map((e) => e.tipo)).toContain("paciente_cambiado");
+    const eventosTrat = await db().selectFrom("tratamiento_evento").select("tipo").where("tratamiento_id", "=", trat.id).execute();
+    expect(eventosTrat.map((e) => e.tipo)).toContain("paciente_cambiado");
+    const eventoDestino = await db().selectFrom("paciente_evento").selectAll().where("paciente_id", "=", destino.id).where("tipo", "=", "fusion_recibida").executeTakeFirstOrThrow();
+    expect(eventoDestino.cambios).toMatchObject({ origen_documento: "CC 52000111", citas: 1 });
+  });
+
+  it("no fusiona una ficha consigo misma ni una ya fusionada; la absorbida no se edita", async () => {
+    const a = await crearPaciente(db(), base, FABIO);
+    const b = await crearPaciente(db(), { ...base, numeroDocumento: "52000111" }, FABIO);
+    await expect(fusionarPacientes(db(), { destinoId: a.id, origenId: a.id }, FABIO)).rejects.toThrow(/distintas/);
+    await fusionarPacientes(db(), { destinoId: a.id, origenId: b.id }, FABIO);
+    await expect(fusionarPacientes(db(), { destinoId: a.id, origenId: b.id }, FABIO)).rejects.toThrow(/ya fue fusionada/);
+    await expect(actualizarPaciente(db(), b.id, { ...base, numeroDocumento: "52000111", estado: "activo" }, FABIO)).rejects.toThrow(/fusionó/);
+  });
+
+  it("fuera de una fusión, un consentimiento no cambia de ficha", async () => {
+    const a = await crearPaciente(db(), base, FABIO);
+    const b = await crearPaciente(db(), { ...base, numeroDocumento: "52000111" }, FABIO);
+    const c = await db()
+      .insertInto("consentimiento")
+      .values({ paciente_id: a.id, tipo: "tratamiento_datos", version: "v1", texto: "Texto", texto_sha256: "a".repeat(64), origen: "web" })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await expect(db().updateTable("consentimiento").set({ paciente_id: b.id }).where("id", "=", c.id).execute()).rejects.toThrow(/solo inserción/);
   });
 });

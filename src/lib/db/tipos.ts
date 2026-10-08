@@ -25,6 +25,21 @@ export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface Abono {
+  anulado_en: Timestamp | null;
+  anulado_por: string | null;
+  confirma_saldo_a_favor: Generated<boolean>;
+  creado_en: Generated<Timestamp>;
+  fecha: string;
+  id: Generated<string>;
+  medio: string;
+  motivo_anulacion: string | null;
+  referencia: Generated<string>;
+  registrado_por: string | null;
+  tratamiento_id: string;
+  valor: number;
+}
+
 export interface Account {
   accessToken: string | null;
   accessTokenExpiresAt: Timestamp | null;
@@ -139,11 +154,34 @@ export interface Paciente {
   correo: string | null;
   creado_en: Generated<Timestamp>;
   estado: Generated<string>;
+  fecha_nacimiento: string | null;
+  fusionado_con: string | null;
+  fusionado_en: Timestamp | null;
   id: Generated<string>;
   nombre: string;
   notas: Generated<string>;
   numero_documento: string | null;
+  telefono: string | null;
   tipo_documento: string | null;
+}
+
+export interface PacienteCartera {
+  abonado: number | null;
+  deuda: number | null;
+  estado_pago: string | null;
+  paciente_id: string | null;
+  proxima_cita: Timestamp | null;
+  saldo: number | null;
+}
+
+export interface PacienteEvento {
+  actor_id: string | null;
+  actor_tipo: string;
+  cambios: Generated<Json>;
+  id: Generated<Int8>;
+  ocurrido_en: Generated<Timestamp>;
+  paciente_id: string;
+  tipo: string;
 }
 
 export interface Servicio {
@@ -192,6 +230,44 @@ export interface SolicitudReserva {
   token_sha256: string;
   user_agent: string | null;
   verificada_en: Timestamp | null;
+}
+
+export interface Tratamiento {
+  actualizado_en: Generated<Timestamp>;
+  costo_inicial: number;
+  costo_total: number;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  descripcion: Generated<string>;
+  estado: Generated<string>;
+  fecha_fin: string | null;
+  fecha_inicio: string | null;
+  id: Generated<string>;
+  notas: Generated<string>;
+  paciente_id: string;
+  servicio_id: string | null;
+  valor_realizado: number | null;
+}
+
+export interface TratamientoEvento {
+  actor_id: string | null;
+  antes: Json | null;
+  despues: Json | null;
+  id: Generated<Int8>;
+  motivo: string | null;
+  ocurrido_en: Generated<Timestamp>;
+  tipo: string;
+  tratamiento_id: string;
+}
+
+export interface TratamientoSaldo {
+  abonado: number | null;
+  base: number | null;
+  estado: string | null;
+  estado_pago: string | null;
+  paciente_id: string | null;
+  saldo: number | null;
+  tratamiento_id: string | null;
 }
 
 export interface TwoFactor {
@@ -247,6 +323,7 @@ export interface Verification {
 }
 
 export interface DB {
+  abono: Abono;
   account: Account;
   auditoria: Auditoria;
   bloqueo: Bloqueo;
@@ -257,9 +334,14 @@ export interface DB {
   horario_laboral: HorarioLaboral;
   intento_verificacion: IntentoVerificacion;
   paciente: Paciente;
+  paciente_cartera: PacienteCartera;
+  paciente_evento: PacienteEvento;
   servicio: Servicio;
   session: Session;
   solicitud_reserva: SolicitudReserva;
+  tratamiento: Tratamiento;
+  tratamiento_evento: TratamientoEvento;
+  tratamiento_saldo: TratamientoSaldo;
   twoFactor: TwoFactor;
   user: User;
   usuario: Usuario;

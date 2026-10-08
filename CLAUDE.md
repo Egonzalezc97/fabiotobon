@@ -47,7 +47,7 @@ Pasarela de pagos, cotizaciones, reactivación proactiva de pacientes, multiusua
 src/app/(public)/     landing y reserva
 src/app/(admin)/      panel privado
 src/app/api/          webhooks y tareas programadas
-src/modules/          dominio: agenda, pacientes, servicios, configuracion, notificaciones, galeria, agente, auditoria
+src/modules/          dominio: agenda, pacientes, tratamientos, servicios, configuracion, notificaciones, galeria, agente, auditoria
 src/components/       UI compartida
 src/lib/              clientes de BD, WhatsApp, correo, LLM
 public/brand/         logos SVG (usan currentColor)

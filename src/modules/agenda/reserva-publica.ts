@@ -4,6 +4,7 @@ import { normalizarCelular } from "@/lib/telefono";
 import { codigoCoincide, generarCodigo, hmacCodigo, type EmisorCodigo } from "@/lib/verificacion";
 import { registrar } from "@/modules/auditoria";
 import { leerParametros, leerTextoAutorizacion, type TextoAutorizacion } from "@/modules/configuracion";
+import { registrarEventoPaciente } from "@/modules/pacientes";
 import { normalizarDocumento, type Documento } from "@/modules/pacientes/documento";
 import { crearCita, ESTADOS_ACTIVOS, ocupadosEnRango } from "./citas";
 import { calcularCupos, ultimoDiaReservable } from "./disponibilidad";
@@ -441,6 +442,7 @@ export async function completarReserva(
               .returning("id")
               .executeTakeFirstOrThrow()
           ).id;
+          await registrarEventoPaciente(trx, pacienteId, "creado", { origen: "reserva_web" }, { tipo: "paciente", id: pacienteId });
         } else {
           // La ficha existente NO se modifica. Lo escrito queda en el evento de la cita.
           pacienteId = existente.id;
@@ -459,6 +461,7 @@ export async function completarReserva(
             .returning("id")
             .executeTakeFirstOrThrow()
         ).id;
+        await registrarEventoPaciente(trx, pacienteId, "creado", { origen: "reserva_web", sin_documento: true }, { tipo: "paciente", id: pacienteId });
         revision = "sin_documento";
       }
 

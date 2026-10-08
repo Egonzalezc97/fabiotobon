@@ -1,10 +1,14 @@
 import { Kysely, PostgresDialect } from "kysely";
-import { Pool } from "pg";
+import { Pool, types } from "pg";
 import { env } from "../env";
 import type { DB } from "./tipos";
 
 export type { DB } from "./tipos";
 export type BaseDeDatos = Kysely<DB>;
+
+// Las columnas DATE (fechas de calendario, sin hora) llegan como texto "AAAA-MM-DD": convertirlas a Date
+// las movería un día según la zona horaria del servidor. Los tipos se generan con --date-parser string.
+types.setTypeParser(types.builtins.DATE, (valor) => valor);
 
 // En desarrollo Next recarga módulos; se guarda la instancia en globalThis para no abrir un pool por recarga.
 const global = globalThis as typeof globalThis & { __fabiotobonDb?: { pool: Pool; db: BaseDeDatos } };
