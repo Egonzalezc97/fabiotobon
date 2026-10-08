@@ -33,6 +33,7 @@ Pasarela de pagos, cotizaciones, reactivación proactiva de pacientes, multiusua
 ## Stack
 
 - Next.js (App Router) + TypeScript estricto, una sola aplicación.
+- Node.js LTS y npm como gestor de paquetes.
 - PostgreSQL. Migraciones SQL versionadas en `db/migrations`.
 - Tailwind + componentes propios. Sin plantillas de clínica dental.
 - WhatsApp vía Twilio, detrás de una interfaz propia en `src/lib/whatsapp`.
@@ -67,6 +68,25 @@ public/brand/         logos SVG (usan currentColor)
 - Logos en `public/brand/`: `isotipo`, `diente` (favicon), `wordmark`, `logo-completo`, `texto-doctor`, `texto-nombre`. Son calcos de un JPEG: bien a tamaño de cabecera, irregulares si se amplían mucho.
 - Grises, azul como acento, blanco, espacios amplios. Premium y limpio, cercano, no corporativo.
 - Móvil primero. Botón de WhatsApp visible en toda la experiencia pública.
+
+### Dirección visual: que no parezca hecha con IA
+
+Obligatorio:
+- Tono editorial, apoyado en el contraste del logo: firma manuscrita + palo seco. Una tipografía de titulares con carácter y una de texto sobria; nunca la fuente por defecto del framework.
+- Un solo azul de acento, usado con moderación. Una sola familia de grises.
+- Composición asimétrica y con ritmo: secciones de alturas y estructuras distintas, no bloques repetidos.
+- La fotografía manda. Mientras no haya fotos reales, bloques de color con proporciones definitivas, no fotos de banco de imágenes de sonrisas.
+- Antes y después como comparador deslizable, no como dos imágenes sueltas.
+- Movimiento mínimo y con intención; respeta `prefers-reduced-motion`.
+- Textos cortos, concretos y en segunda persona. Sin frases de relleno.
+
+Prohibido:
+- Degradados morado-azul, brillos, vidrio esmerilado, sombras difusas en todo.
+- Emojis como íconos. Íconos genéricos de diente dentro de círculos de color.
+- La cuadrícula de tres tarjetas idénticas (ícono, título, dos líneas).
+- Hero centrado con título, subtítulo y dos botones sobre fondo degradado.
+- Esquinas muy redondeadas en todo, insignias tipo píldora sobre cada título.
+- Contadores animados, "confían en nosotros", estrellas de calificación.
 
 ## Forma de trabajo
 
