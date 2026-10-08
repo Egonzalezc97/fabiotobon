@@ -119,11 +119,24 @@ export function normalizarRed(valor: unknown, red: keyof typeof REDES): string |
   }
 }
 
+/** "@usuario" a partir de la URL del perfil (último tramo de la ruta). */
+export function usuarioDeRed(url: string): string {
+  const tramo = new URL(url).pathname.split("/").filter(Boolean).at(-1) ?? "";
+  return `@${decodeURIComponent(tramo)}`;
+}
+
+function enlaceLlamada(telefono: string | null): string | null {
+  const numero = normalizarTelefono(telefono);
+  return numero ? `tel:${numero}` : null;
+}
+
 export type UrgenciasPublicas = { texto: string; telefono: string; enlace: string };
 
 export type ContactoPublico = DatosContacto & {
   enlaceWhatsapp: string | null;
   enlaceComoLlegar: string | null;
+  /** tel:+57… si el teléfono es un número válido. */
+  enlaceTelefono: string | null;
   /** Solo si está activa y tiene texto y número válidos. */
   urgencias: UrgenciasPublicas | null;
 };
@@ -160,6 +173,7 @@ export async function leerContacto(db: BaseDeDatos): Promise<ContactoPublico> {
     ...datos,
     enlaceWhatsapp: datos.whatsapp ? enlaceWhatsapp(datos.whatsapp, datos.mensajeWhatsapp) : null,
     enlaceComoLlegar: datos.direccion ? enlaceComoLlegar(datos.direccion, datos.ciudad) : null,
+    enlaceTelefono: enlaceLlamada(datos.telefono),
     urgencias:
       datos.urgenciasActiva && datos.urgenciasTexto && datos.urgenciasTelefono
         ? {
@@ -174,7 +188,7 @@ export async function leerContacto(db: BaseDeDatos): Promise<ContactoPublico> {
 /** Solo los datos guardados (sin los enlaces calculados), p. ej. para el formulario del panel. */
 export function datosContacto(contacto: ContactoPublico): DatosContacto {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { enlaceWhatsapp, enlaceComoLlegar, urgencias, ...datos } = contacto;
+  const { enlaceWhatsapp, enlaceComoLlegar, enlaceTelefono, urgencias, ...datos } = contacto;
   return datos;
 }
 

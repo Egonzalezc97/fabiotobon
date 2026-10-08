@@ -1,6 +1,6 @@
 import { Logo } from "@/components/marca";
-import { Redes, Ubicacion } from "@/components/publico/contacto";
-import { Pendiente, TextoOPendiente } from "@/components/publico/pendiente";
+import { hayRedes, hayUbicacion, Redes, Ubicacion } from "@/components/publico/contacto";
+import { marcadoresVisibles, Pendiente } from "@/components/publico/pendiente";
 import type { ContactoPublico } from "@/modules/configuracion";
 
 export function Pie({ contacto }: { contacto: ContactoPublico }) {
@@ -9,34 +9,36 @@ export function Pie({ contacto }: { contacto: ContactoPublico }) {
       <div className="mx-auto grid max-w-[84rem] gap-10 px-5 pb-28 pt-14 md:px-10 lg:grid-cols-12 lg:gap-x-6">
         <Logo nombre="logo-completo" etiqueta="Doctor Fabio Tobón Casas" className="h-36 text-gris-800 lg:col-span-4" />
         <div className="grid gap-6 self-end font-sans text-sm text-gris-600 sm:grid-cols-2 lg:col-span-7 lg:col-start-6">
-          <div>
-            Consultorio
-            <Ubicacion contacto={contacto} compacta className="text-gris-800" />
-          </div>
-          <div>
-            Redes
-            {contacto.instagram || contacto.facebook ? (
-              <Redes contacto={contacto} className="mt-1" />
-            ) : (
-              <span className="block text-gris-800">
-                <Pendiente dato="redes" />
+          {hayUbicacion(contacto) && (
+            <div>
+              Consultorio
+              <Ubicacion contacto={contacto} compacta className="text-gris-800" />
+            </div>
+          )}
+          {/* Opcionales: si están vacíos no se muestran. */}
+          {hayRedes(contacto) && (
+            <div>
+              Redes
+              <Redes contacto={contacto} compacta />
+            </div>
+          )}
+          {contacto.registroProfesional && (
+            <p>
+              Registro profesional
+              <br />
+              <span className="text-gris-800">{contacto.registroProfesional}</span>
+            </p>
+          )}
+          {/* Obligatoria antes de producción (Ley 1581 de 2012); mientras falte, solo el marcador fuera de producción. */}
+          {marcadoresVisibles() && (
+            <p>
+              Tratamiento de datos personales
+              <br />
+              <span className="text-gris-800">
+                <Pendiente dato="política de tratamiento de datos" />
               </span>
-            )}
-          </div>
-          <p>
-            Registro profesional
-            <br />
-            <span className="text-gris-800">
-              <TextoOPendiente texto={contacto.registroProfesional} dato="registro profesional" />
-            </span>
-          </p>
-          <p>
-            Tratamiento de datos personales
-            <br />
-            <span className="text-gris-800">
-              <Pendiente dato="política de tratamiento de datos" />
-            </span>
-          </p>
+            </p>
+          )}
           <p className="sm:col-span-2">© {new Date().getFullYear()} Fabio Tobón Odontología</p>
         </div>
       </div>

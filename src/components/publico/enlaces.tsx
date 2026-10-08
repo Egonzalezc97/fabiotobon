@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Pendiente } from "./pendiente";
+import { marcadoresVisibles, Pendiente } from "./pendiente";
 
 export function BotonAgendar({ className, children = "Agenda tu valoración" }: { className?: string; children?: React.ReactNode }) {
   return (
@@ -14,7 +14,8 @@ export function BotonAgendar({ className, children = "Agenda tu valoración" }: 
 
 /**
  * Enlace de texto a WhatsApp dentro de la página (hero, servicios, contacto, reserva).
- * `enlace` es la URL wa.me completa con el mensaje inicial de configuración; sin número, marcador de pendiente.
+ * `enlace` es la URL wa.me completa con el mensaje inicial de configuración; sin número, marcador de pendiente
+ * (en producción, nada).
  */
 export function EnlaceWhatsapp({
   enlace,
@@ -26,6 +27,7 @@ export function EnlaceWhatsapp({
   children?: React.ReactNode;
 }) {
   if (!enlace) {
+    if (!marcadoresVisibles()) return null;
     return (
       <span className={`font-sans text-[0.9375rem] ${className ?? ""}`}>
         WhatsApp <Pendiente dato="número de WhatsApp" />
@@ -70,6 +72,7 @@ export function WhatsappFlotante({ enlace }: { enlace: string | null }) {
     "fixed z-40 grid size-14 place-items-center rounded-full bg-[#25D366] text-white shadow-[0_4px_14px_rgba(0,0,0,0.18)]";
 
   if (!enlace) {
+    if (!marcadoresVisibles()) return null;
     return (
       <span role="img" aria-label="WhatsApp: número pendiente" title="[PENDIENTE: número de WhatsApp]" className={`${circulo} opacity-60`} style={posicion}>
         <IconoWhatsapp className="size-7" />

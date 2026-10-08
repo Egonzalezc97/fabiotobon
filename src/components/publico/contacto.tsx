@@ -1,12 +1,18 @@
-import type { ContactoPublico, UrgenciasPublicas } from "@/modules/configuracion";
+import { usuarioDeRed, type ContactoPublico, type UrgenciasPublicas } from "@/modules/configuracion";
 import { IconoFacebook, IconoInstagram, IconoTelefono } from "./iconos";
-import { TextoOPendiente } from "./pendiente";
+import { marcadoresVisibles, TextoOPendiente } from "./pendiente";
 
 const NUEVA_PESTANA = { target: "_blank", rel: "noopener noreferrer" } as const;
+
+/** ¿Hay algo que mostrar de la ubicación? Sin dirección, solo el marcador (fuera de producción). */
+export function hayUbicacion(contacto: ContactoPublico): boolean {
+  return Boolean(contacto.direccion) || marcadoresVisibles();
+}
 
 /** Dirección, ciudad, referencia y enlace "Cómo llegar" (Google Maps, pestaña nueva). Sin mapa incrustado. */
 export function Ubicacion({ contacto, compacta = false, className }: { contacto: ContactoPublico; compacta?: boolean; className?: string }) {
   const secundario = compacta ? "text-sm" : "text-[0.9375rem]";
+  if (!hayUbicacion(contacto)) return null;
   return (
     <div className={className}>
       <p>
@@ -30,24 +36,29 @@ export function Ubicacion({ contacto, compacta = false, className }: { contacto:
   );
 }
 
-/** Íconos de Instagram y Facebook en el gris del sitio. Lo que no esté configurado no se muestra. */
-export function Redes({ contacto, className }: { contacto: ContactoPublico; className?: string }) {
+export function hayRedes(contacto: ContactoPublico): boolean {
+  return Boolean(contacto.instagram || contacto.facebook);
+}
+
+/** Un enlace por red: ícono y usuario (tomado de la URL), en el gris del sitio. Lo que no esté configurado no se muestra. */
+export function Redes({ contacto, compacta = false, className }: { contacto: ContactoPublico; compacta?: boolean; className?: string }) {
   const redes = [
     { url: contacto.instagram, etiqueta: "Instagram de Fabio Tobón", Icono: IconoInstagram },
     { url: contacto.facebook, etiqueta: "Facebook de Fabio Tobón", Icono: IconoFacebook },
   ].filter((r): r is typeof r & { url: string } => Boolean(r.url));
   if (redes.length === 0) return null;
   return (
-    <ul className={`-ml-2.5 flex items-center gap-1 ${className ?? ""}`}>
+    <ul className={className}>
       {redes.map(({ url, etiqueta, Icono }) => (
         <li key={url}>
           <a
             href={url}
             {...NUEVA_PESTANA}
             aria-label={etiqueta}
-            className="grid size-11 place-items-center text-gris-600 transition-colors duration-150 hover:text-gris-800"
+            className={`inline-flex min-h-11 items-center gap-2.5 font-sans text-gris-600 transition-colors duration-150 hover:text-gris-800 ${compacta ? "text-sm" : "text-[0.9375rem]"}`}
           >
-            <Icono className="size-5" />
+            <Icono className="size-5 shrink-0" />
+            <span>{usuarioDeRed(url)}</span>
           </a>
         </li>
       ))}

@@ -1,7 +1,7 @@
 import { BloqueImagen } from "@/components/publico/bloque-imagen";
-import { FranjaUrgencias, Redes, Ubicacion } from "@/components/publico/contacto";
+import { FranjaUrgencias, hayRedes, hayUbicacion, Redes, Ubicacion } from "@/components/publico/contacto";
 import { BotonAgendar, EnlaceWhatsapp } from "@/components/publico/enlaces";
-import { Pendiente, TextoOPendiente } from "@/components/publico/pendiente";
+import { marcadoresVisibles, Pendiente, TextoOPendiente } from "@/components/publico/pendiente";
 import type { ContenidoLanding } from "@/content";
 import type { LineaHorario } from "@/modules/agenda/horario";
 import type { ContactoPublico } from "@/modules/configuracion";
@@ -39,45 +39,46 @@ export function Contacto({
           </p>
 
           <dl className="mt-12 grid gap-x-6 gap-y-8 sm:grid-cols-2">
-            <Dato titulo="Dirección">
-              <Ubicacion contacto={contacto} />
-            </Dato>
-            <Dato titulo="Horario">
-              {horario.length === 0 ? (
-                <Pendiente dato="horario de atención" />
-              ) : (
-                <ul className="space-y-1">
-                  {horario.map((l) => (
-                    <li key={l.dias}>
-                      {l.dias}
-                      <br />
-                      <span className="font-sans text-base tabular-nums text-gris-600">{l.horas}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Dato>
-            <Dato titulo="Teléfono">
-              {contacto.telefono ? (
-                <a href={`tel:${contacto.telefono.replace(/[^\d+]/g, "")}`} className="underline-offset-4 hover:underline">
+            {hayUbicacion(contacto) && (
+              <Dato titulo="Dirección">
+                <Ubicacion contacto={contacto} />
+              </Dato>
+            )}
+            {(horario.length > 0 || marcadoresVisibles()) && (
+              <Dato titulo="Horario">
+                {horario.length === 0 ? (
+                  <Pendiente dato="horario de atención" />
+                ) : (
+                  <ul className="space-y-1">
+                    {horario.map((l) => (
+                      <li key={l.dias}>
+                        {l.dias}
+                        <br />
+                        <span className="font-sans text-base tabular-nums text-gris-600">{l.horas}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Dato>
+            )}
+            {/* Opcionales: si están vacíos no se muestran. */}
+            {contacto.telefono && (
+              <Dato titulo="Teléfono">
+                <a href={contacto.enlaceTelefono ?? undefined} className="underline-offset-4 hover:underline">
                   {contacto.telefono}
                 </a>
-              ) : (
-                <Pendiente dato="teléfono" />
-              )}
-            </Dato>
-            <Dato titulo="Correo">
-              {contacto.correo ? (
-                <a href={`mailto:${contacto.correo}`} className="underline-offset-4 hover:underline">
+              </Dato>
+            )}
+            {contacto.correo && (
+              <Dato titulo="Correo">
+                <a href={`mailto:${contacto.correo}`} className="break-all underline-offset-4 hover:underline">
                   {contacto.correo}
                 </a>
-              ) : (
-                <Pendiente dato="correo" />
-              )}
-            </Dato>
-            {(contacto.instagram || contacto.facebook) && (
+              </Dato>
+            )}
+            {hayRedes(contacto) && (
               <Dato titulo="Redes">
-                <Redes contacto={contacto} />
+                <Redes contacto={contacto} className="-my-2" />
               </Dato>
             )}
           </dl>

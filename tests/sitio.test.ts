@@ -1,4 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { marcadoresVisibles } from "@/components/publico/pendiente";
 import { obtenerContenido } from "@/content";
 import { contenidoDemo } from "@/content/demo/landing";
 import { cerrarDb, db, pool } from "@/lib/db";
@@ -14,6 +15,7 @@ import {
   leerContacto,
   normalizarRed,
   normalizarWhatsapp,
+  usuarioDeRed,
 } from "@/modules/configuracion";
 import { formatearDuracion, formatearPrecio, listarServiciosLanding } from "@/modules/servicios";
 import { limpiarDatos } from "./ayudas";
@@ -65,7 +67,7 @@ describe("semilla de demostración", () => {
     const antes = await leerContacto(db());
     await cargarSemillaDemo(pool(), DESARROLLO);
     expect(await leerContacto(db())).toEqual(antes);
-    expect(antes).toMatchObject({ telefono: null, correo: null, registroProfesional: null });
+    expect(antes).toMatchObject({ correo: null, registroProfesional: null });
   });
 
   it("se niega a correr en producción", async () => {
@@ -122,6 +124,8 @@ describe("contacto", () => {
   it("la migración deja especialidad, dirección, referencia, redes y urgencias reales", async () => {
     expect(await leerContacto(db())).toMatchObject({
       especialidad: "Odontología integral",
+      telefono: "+57 323 345 6845",
+      enlaceTelefono: "tel:+573233456845",
       direccion: "Carrera 23 N.º 47-80",
       ciudad: "Manizales",
       referencia: "Sobre la avenida Santander, al lado de Coldeportes",
@@ -166,6 +170,8 @@ describe("contacto", () => {
       urgenciasTelefono: null,
       enlaceWhatsapp: "https://wa.me/573001234567",
       enlaceComoLlegar: null,
+      // Un fijo escrito con indicativo de área también se puede llamar.
+      enlaceTelefono: "tel:+576040000000",
       // Activa pero sin texto ni número válidos: no se muestra.
       urgencias: null,
     });
@@ -248,6 +254,18 @@ describe("contacto", () => {
     );
     expect(enlaceComoLlegar("Calle 10 # 5-20")).toBe("https://www.google.com/maps/search/?api=1&query=Calle+10+5-20");
     expect(enlaceComoLlegar("Avenida Norte No. 4")).toBe("https://www.google.com/maps/search/?api=1&query=Avenida+Norte+4");
+  });
+
+  it("toma el usuario de la URL de la red", () => {
+    expect(usuarioDeRed("https://instagram.com/dr.fabiotobon")).toBe("@dr.fabiotobon");
+    expect(usuarioDeRed("https://facebook.com/dr.fabiotobon")).toBe("@dr.fabiotobon");
+  });
+
+  it("los marcadores de pendiente solo se ven fuera de producción o con DEMO_CONTENT", () => {
+    expect(marcadoresVisibles({ APP_ENV: "development" })).toBe(true);
+    expect(marcadoresVisibles({ APP_ENV: "production" })).toBe(false);
+    expect(marcadoresVisibles({ RAILWAY_ENVIRONMENT_NAME: "production" })).toBe(false);
+    expect(marcadoresVisibles({ APP_ENV: "production", DEMO_CONTENT: "true" })).toBe(true);
   });
 
   it("acepta redes solo de su dominio oficial", () => {
