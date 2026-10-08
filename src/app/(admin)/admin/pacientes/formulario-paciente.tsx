@@ -10,6 +10,8 @@ type Paciente = {
   numero_documento: string | null;
   nombre: string;
   celular: string | null;
+  telefono: string | null;
+  fecha_nacimiento: string | null;
   correo: string | null;
   estado: string;
   notas: string;
@@ -42,13 +44,15 @@ export function FormularioPaciente({
           <CampoPanel etiqueta="Nombre completo" id="nombre" name="nombre" defaultValue={paciente?.nombre} required />
         </div>
         <CampoPanel
-          etiqueta="Celular"
+          etiqueta="WhatsApp (celular)"
           id="celular"
           name="celular"
           type="tel"
           defaultValue={paciente?.celular ?? ""}
           ayuda="Si lo cambias, queda sin verificar hasta que el paciente reserve por la web."
         />
+        <CampoPanel etiqueta="Teléfono adicional" id="telefono" name="telefono" type="tel" defaultValue={paciente?.telefono ?? ""} />
+        <CampoPanel etiqueta="Fecha de nacimiento" id="fechaNacimiento" name="fechaNacimiento" type="date" defaultValue={paciente?.fecha_nacimiento ?? ""} />
         <CampoPanel etiqueta="Correo" id="correo" name="correo" type="email" defaultValue={paciente?.correo ?? ""} />
         {paciente && (
           <SelectorPanel etiqueta="Estado (DPF)" id="estado" name="estado" defaultValue={paciente.estado}>
