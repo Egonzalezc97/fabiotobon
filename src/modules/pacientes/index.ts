@@ -384,3 +384,95 @@ export async function fusionarPacientes(
     return resumen;
   });
 }
+
+// ---------------------------------------------------------------------------
+// Tabla de pacientes (CRM): búsqueda, filtros, orden y paginación en el servidor.
+// ---------------------------------------------------------------------------
+
+export const COLUMNAS_ORDEN = ["nombre", "documento", "estado", "estado_pago", "saldo", "proxima_cita"] as const;
+export type ColumnaOrden = (typeof COLUMNAS_ORDEN)[number];
+export const TAMANO_PAGINA = 25;
+
+export type FiltrosTabla = {
+  termino?: string;
+  estado?: "activo" | "inactivo" | null;
+  estadoPago?: string | null;
+  conCitaProxima?: boolean;
+  orden?: ColumnaOrden;
+  direccion?: "asc" | "desc";
+  pagina?: number;
+};
+
+export type FilaTabla = {
+  id: string;
+  nombre: string;
+  tipo_documento: string | null;
+  numero_documento: string | null;
+  celular: string | null;
+  estado: string;
+  estado_pago: string;
+  saldo: number;
+  proxima_cita: Date | null;
+};
+
+const ESTADOS_PAGO = ["sin_tratamientos", "sin_abonos", "con_saldo", "saldado", "saldo_a_favor"];
+
+/** Una página de la tabla de pacientes. Queda en auditoría (con el número de resultados, sin el término). */
+export async function listarTablaPacientes(db: BaseDeDatos, filtros: FiltrosTabla, actor: ActorPanel): Promise<{ filas: FilaTabla[]; total: number; pagina: number }> {
+  const { limpio, digitos, esNumerico } = condicionBusqueda(filtros.termino ?? "");
+  const pagina = Math.max(1, Math.floor(filtros.pagina ?? 1));
+  const orden: ColumnaOrden = COLUMNAS_ORDEN.includes(filtros.orden as ColumnaOrden) ? (filtros.orden as ColumnaOrden) : "nombre";
+  const direccion = filtros.direccion === "desc" ? "desc" : "asc";
+
+  let consulta = db
+    .selectFrom("paciente")
+    .innerJoin("paciente_cartera", "paciente_cartera.paciente_id", "paciente.id")
+    .where("paciente.fusionado_con", "is", null);
+  if (limpio.length >= 2) {
+    consulta = consulta.where((eb) =>
+      esNumerico
+        ? eb.or([eb("paciente.numero_documento", "like", `${digitos.toUpperCase()}%`), eb("paciente.celular", "like", `%${digitos}%`)])
+        : eb(sql`unaccent(lower(paciente.nombre))`, "like", sql`'%' || unaccent(lower(${limpio})) || '%'`),
+    );
+  }
+  if (filtros.estado === "activo" || filtros.estado === "inactivo") consulta = consulta.where("paciente.estado", "=", filtros.estado);
+  if (filtros.estadoPago && ESTADOS_PAGO.includes(filtros.estadoPago)) consulta = consulta.where("paciente_cartera.estado_pago", "=", filtros.estadoPago);
+  if (filtros.conCitaProxima) consulta = consulta.where("paciente_cartera.proxima_cita", "is not", null);
+
+  const columna = {
+    nombre: sql`lower(paciente.nombre)`,
+    documento: sql`paciente.numero_documento`,
+    estado: sql`paciente.estado`,
+    estado_pago: sql`paciente_cartera.estado_pago`,
+    saldo: sql`paciente_cartera.saldo`,
+    proxima_cita: sql`paciente_cartera.proxima_cita`,
+  }[orden];
+
+  const [filas, total] = await Promise.all([
+    consulta
+      .select([
+        "paciente.id",
+        "paciente.nombre",
+        "paciente.tipo_documento",
+        "paciente.numero_documento",
+        "paciente.celular",
+        "paciente.estado",
+        "paciente_cartera.estado_pago",
+        "paciente_cartera.saldo",
+        "paciente_cartera.proxima_cita",
+      ])
+      .orderBy(sql`${columna} ${sql.raw(direccion)} NULLS LAST`)
+      .orderBy("paciente.id")
+      .limit(TAMANO_PAGINA)
+      .offset((pagina - 1) * TAMANO_PAGINA)
+      .execute(),
+    consulta.select((eb) => eb.fn.countAll<string>().as("n")).executeTakeFirstOrThrow(),
+  ]);
+
+  await registrar(db, { actorId: actor.userId, actorTipo: "usuario", accion: "paciente.listado", detalle: { resultados: filas.length, pagina } });
+  return {
+    filas: filas.map((f) => ({ ...f, estado_pago: f.estado_pago ?? "sin_tratamientos", saldo: f.saldo ?? 0, proxima_cita: f.proxima_cita ?? null })),
+    total: Number(total.n),
+    pagina,
+  };
+}

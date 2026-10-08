@@ -8,9 +8,10 @@ import {
   DatosPacienteInvalidos,
   DocumentoDuplicado,
   fusionarPacientes,
+  listarTablaPacientes,
   obtenerFicha,
 } from "@/modules/pacientes";
-import { crearTratamiento } from "@/modules/tratamientos";
+import { crearTratamiento, registrarAbono } from "@/modules/tratamientos";
 import { formatearDocumento, normalizarDocumento } from "@/modules/pacientes/documento";
 import { limpiarDatos } from "./ayudas";
 
@@ -167,5 +168,46 @@ describe("fusión de fichas", () => {
       .returning("id")
       .executeTakeFirstOrThrow();
     await expect(db().updateTable("consentimiento").set({ paciente_id: b.id }).where("id", "=", c.id).execute()).rejects.toThrow(/solo inserción/);
+  });
+});
+
+describe("tabla de pacientes (CRM)", () => {
+  async function poblar() {
+    const nombres = ["Ana Ruiz", "Bruno Díaz", "Carla Gómez", "Daniel Pérez"];
+    const ids: string[] = [];
+    for (const [i, nombre] of nombres.entries()) {
+      ids.push((await crearPaciente(db(), { ...base, numeroDocumento: `2000000${i}`, nombre, celular: null }, FABIO)).id);
+    }
+    // Bruno con saldo, Carla saldada, Daniel inactivo.
+    const t1 = await crearTratamiento(db(), { pacienteId: ids[1]!, descripcion: "X", costoTotal: 500_000, estado: "en_curso" }, FABIO);
+    await registrarAbono(db(), { tratamientoId: t1.id, valor: 100_000, fecha: "2026-10-01", medio: "efectivo" }, FABIO);
+    const t2 = await crearTratamiento(db(), { pacienteId: ids[2]!, descripcion: "Y", costoTotal: 200_000, estado: "terminado" }, FABIO);
+    await registrarAbono(db(), { tratamientoId: t2.id, valor: 200_000, fecha: "2026-10-01", medio: "efectivo" }, FABIO);
+    await db().updateTable("paciente").set({ estado: "inactivo" }).where("id", "=", ids[3]!).execute();
+    return ids;
+  }
+
+  it("filtra por estado de pago y estado, ordena por saldo y no muestra fichas fusionadas", async () => {
+    const ids = await poblar();
+    const conSaldo = await listarTablaPacientes(db(), { estadoPago: "con_saldo" }, FABIO);
+    expect(conSaldo.filas.map((f) => f.nombre)).toEqual(["Bruno Díaz"]);
+    expect(conSaldo.filas[0]?.saldo).toBe(400_000);
+    expect((await listarTablaPacientes(db(), { estado: "inactivo" }, FABIO)).filas.map((f) => f.nombre)).toEqual(["Daniel Pérez"]);
+    const porSaldo = await listarTablaPacientes(db(), { orden: "saldo", direccion: "desc" }, FABIO);
+    expect(porSaldo.filas[0]?.nombre).toBe("Bruno Díaz");
+    await fusionarPacientes(db(), { destinoId: ids[0]!, origenId: ids[3]! }, FABIO);
+    expect((await listarTablaPacientes(db(), {}, FABIO)).total).toBe(3);
+  });
+
+  it("busca sin tildes, filtra por cita próxima y pagina en el servidor", async () => {
+    await poblar();
+    expect((await listarTablaPacientes(db(), { termino: "diaz" }, FABIO)).filas.map((f) => f.nombre)).toEqual(["Bruno Díaz"]);
+    expect((await listarTablaPacientes(db(), { conCitaProxima: true }, FABIO)).total).toBe(0);
+    for (let i = 0; i < 30; i++) await crearPaciente(db(), { ...base, numeroDocumento: `3000000${String(i).padStart(2, "0")}`, nombre: `Relleno ${i}` }, FABIO);
+    const p2 = await listarTablaPacientes(db(), { pagina: 2 }, FABIO);
+    expect(p2.total).toBe(34);
+    expect(p2.filas).toHaveLength(9);
+    const auditoria = await db().selectFrom("auditoria").select("detalle").where("accion", "=", "paciente.listado").execute();
+    expect(JSON.stringify(auditoria)).not.toContain("diaz");
   });
 });
