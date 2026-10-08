@@ -1,6 +1,10 @@
+import { registrar } from "@/modules/auditoria";
 import type { BaseDeDatos } from "@/lib/db";
+import { dentroDelHorario, type HorarioSemanal, type Tramo as TramoMinutos } from "./disponibilidad";
+import { aHora, aMinutos } from "./tiempo";
+import { enTransaccion, tomarCandadoAgenda, type Actor } from "./transaccion";
 
-// Solo lectura del horario semanal para mostrarlo. El cálculo de cupos llega en la fase 2.
+// Horario laboral semanal: lectura para mostrar (landing), en minutos para calcular cupos, y edición (panel).
 
 export type Tramo = { inicio: string; fin: string };
 export type DiaHorario = { dia: number; tramos: Tramo[] };
@@ -46,5 +50,58 @@ export function resumirHorario(semana: DiaHorario[]): LineaHorario[] {
     const b = NOMBRES_DIA[hasta] ?? "";
     const dias = desde === hasta ? a : hasta === desde + 1 ? `${a} y ${b}` : `${a} a ${b}`;
     return { dias: dias.charAt(0).toUpperCase() + dias.slice(1), horas };
+  });
+}
+
+/** Horario en minutos desde medianoche, por día ISO. Base del cálculo de cupos. */
+export async function leerHorarioMinutos(db: BaseDeDatos): Promise<HorarioSemanal> {
+  const filas = await db.selectFrom("horario_laboral").select(["dia_semana", "hora_inicio", "hora_fin"]).execute();
+  const horario: HorarioSemanal = {};
+  for (const f of filas) {
+    (horario[f.dia_semana] ??= []).push({ inicioMin: aMinutos(f.hora_inicio), finMin: aMinutos(f.hora_fin) });
+  }
+  return horario;
+}
+
+export type CitaFueraDeHorario = { id: string; inicio: Date; fin: Date; pacienteNombre: string };
+
+/**
+ * Reemplaza el horario semanal completo. Si quedan citas futuras activas fuera del horario nuevo,
+ * se devuelven como advertencia: siguen siendo válidas y Fabio decide si moverlas.
+ * Los tramos superpuestos los rechaza la base (restricción horario_laboral_sin_solapes).
+ */
+export async function guardarHorario(
+  db: BaseDeDatos,
+  horario: HorarioSemanal,
+  opciones: { actor: Actor; ahora?: Date },
+): Promise<{ fueraDeHorario: CitaFueraDeHorario[] }> {
+  return enTransaccion(db, async (trx) => {
+    await tomarCandadoAgenda(trx);
+    await trx.deleteFrom("horario_laboral").execute();
+    const filas = Object.entries(horario).flatMap(([dia, tramos]) =>
+      (tramos ?? []).map((t: TramoMinutos) => ({
+        dia_semana: Number(dia),
+        hora_inicio: aHora(t.inicioMin),
+        hora_fin: aHora(t.finMin),
+      })),
+    );
+    if (filas.length > 0) await trx.insertInto("horario_laboral").values(filas).execute();
+
+    const futuras = await trx
+      .selectFrom("cita")
+      .innerJoin("paciente", "paciente.id", "cita.paciente_id")
+      .select(["cita.id", "cita.inicio", "cita.fin", "paciente.nombre as pacienteNombre"])
+      .where("cita.estado", "in", ["pendiente", "confirmada"])
+      .where("cita.inicio", ">=", opciones.ahora ?? new Date())
+      .orderBy("cita.inicio")
+      .execute();
+
+    await registrar(trx, {
+      actorId: opciones.actor.id ?? null,
+      actorTipo: opciones.actor.tipo === "usuario" ? "usuario" : "sistema",
+      accion: "horario.actualizado",
+      detalle: { tramos: filas.length },
+    });
+    return { fueraDeHorario: futuras.filter((c) => !dentroDelHorario(c, horario)) };
   });
 }
