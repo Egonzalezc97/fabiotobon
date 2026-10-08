@@ -88,6 +88,8 @@ Prohibido:
 - Esquinas muy redondeadas en todo, insignias tipo píldora sobre cada título.
 - Contadores animados, "confían en nosotros", estrellas de calificación.
 
+Excepción explícita (aprobada): el botón flotante de WhatsApp es un círculo verde de WhatsApp (#25D366) de unos 56 px con el ícono oficial en blanco y sombra suave. Sin contador ni globo de notificación. La excepción es solo para ese botón; los demás enlaces de WhatsApp siguen el estilo del sitio.
+
 ## Forma de trabajo
 
 - Avanzar por las fases de `docs/propuesta-tecnica.md` §17, en orden. No adelantar módulos de fases posteriores.

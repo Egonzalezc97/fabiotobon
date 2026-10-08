@@ -1,4 +1,5 @@
 import type { BaseDeDatos } from "@/lib/db";
+import { registrar } from "@/modules/auditoria";
 
 /**
  * Datos de contacto y del profesional. Viven en `configuracion` para que Fabio los edite sin desplegar.
@@ -10,6 +11,8 @@ export type DatosContacto = {
   telefono: string | null;
   /** Solo dígitos, con indicativo de país (p. ej. 57…), listo para wa.me. */
   whatsapp: string | null;
+  /** Mensaje inicial que se escribe solo al abrir WhatsApp. */
+  mensajeWhatsapp: string | null;
   correo: string | null;
   registroProfesional: string | null;
 };
@@ -19,9 +22,15 @@ const CLAVES = {
   ciudad: "contacto_ciudad",
   telefono: "contacto_telefono",
   whatsapp: "contacto_whatsapp",
+  mensajeWhatsapp: "contacto_whatsapp_mensaje",
   correo: "contacto_correo",
   registroProfesional: "registro_profesional",
 } as const satisfies Record<keyof DatosContacto, string>;
+
+/** Enlace wa.me con el mensaje inicial (si hay). */
+export function enlaceWhatsapp(numero: string, mensaje?: string | null): string {
+  return mensaje ? `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}` : `https://wa.me/${numero}`;
+}
 
 export const CLAVE_CONTENIDO_DEMO = "contenido_demo";
 
@@ -43,7 +52,9 @@ function correo(valor: unknown): string | null {
   return t && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t) ? t : null;
 }
 
-export async function leerContacto(db: BaseDeDatos): Promise<DatosContacto> {
+export type ContactoPublico = DatosContacto & { enlaceWhatsapp: string | null };
+
+export async function leerContacto(db: BaseDeDatos): Promise<ContactoPublico> {
   const filas = await db
     .selectFrom("configuracion")
     .select(["clave", "valor"])
@@ -51,14 +62,64 @@ export async function leerContacto(db: BaseDeDatos): Promise<DatosContacto> {
     .execute();
   const valor = (clave: string) => filas.find((f) => f.clave === clave)?.valor;
 
+  const whatsapp = normalizarWhatsapp(valor(CLAVES.whatsapp));
+  const mensajeWhatsapp = texto(valor(CLAVES.mensajeWhatsapp));
   return {
     direccion: texto(valor(CLAVES.direccion)),
     ciudad: texto(valor(CLAVES.ciudad)),
     telefono: texto(valor(CLAVES.telefono)),
-    whatsapp: normalizarWhatsapp(valor(CLAVES.whatsapp)),
+    whatsapp,
+    mensajeWhatsapp,
     correo: correo(valor(CLAVES.correo)),
     registroProfesional: texto(valor(CLAVES.registroProfesional)),
+    enlaceWhatsapp: whatsapp ? enlaceWhatsapp(whatsapp, mensajeWhatsapp) : null,
   };
+}
+
+export class ContactoInvalido extends Error {
+  constructor(mensaje: string) {
+    super(mensaje);
+    this.name = "ContactoInvalido";
+  }
+}
+
+/**
+ * Guarda los datos de contacto desde el panel. Un campo vacío se borra (la web muestra "[PENDIENTE: …]").
+ * Queda en auditoría.
+ */
+export async function guardarContacto(
+  db: BaseDeDatos,
+  datos: Record<keyof DatosContacto, string>,
+  actorId: string,
+): Promise<void> {
+  const limpio = Object.fromEntries(
+    (Object.keys(CLAVES) as (keyof DatosContacto)[]).map((k) => [k, (datos[k] ?? "").trim()]),
+  ) as Record<keyof DatosContacto, string>;
+  for (const [k, v] of Object.entries(limpio)) {
+    if (v.length > 300) throw new ContactoInvalido(`El campo ${k} admite hasta 300 caracteres.`);
+  }
+  if (limpio.whatsapp && !normalizarWhatsapp(limpio.whatsapp)) {
+    throw new ContactoInvalido("El WhatsApp debe incluir el indicativo del país, por ejemplo +57 323 345 6845.");
+  }
+  if (limpio.correo && !correo(limpio.correo)) throw new ContactoInvalido("Revisa el correo.");
+  if (limpio.mensajeWhatsapp.length > 200) throw new ContactoInvalido("El mensaje inicial admite hasta 200 caracteres.");
+
+  await db.transaction().execute(async (trx) => {
+    for (const k of Object.keys(CLAVES) as (keyof DatosContacto)[]) {
+      const clave = CLAVES[k];
+      if (!limpio[k]) {
+        await trx.deleteFrom("configuracion").where("clave", "=", clave).execute();
+        continue;
+      }
+      const valor = JSON.stringify(limpio[k]);
+      await trx
+        .insertInto("configuracion")
+        .values({ clave, valor })
+        .onConflict((oc) => oc.column("clave").doUpdateSet({ valor }))
+        .execute();
+    }
+    await registrar(trx, { actorId, actorTipo: "usuario", accion: "contacto.actualizado" });
+  });
 }
 
 // ---------------------------------------------------------------------------

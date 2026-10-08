@@ -80,7 +80,7 @@ export function Servicios({
           </p>
           <div className="flex flex-wrap items-center gap-x-8 gap-y-5">
             <BotonAgendar />
-            <EnlaceWhatsapp numero={whatsapp} />
+            <EnlaceWhatsapp enlace={whatsapp} />
           </div>
         </div>
       </div>

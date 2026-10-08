@@ -18,7 +18,7 @@ export default async function Datos({ searchParams }: Props) {
   const sp = await searchParams;
   const { contacto } = await datosSitio();
   const estado = await estadoReservaPublica(db(), entornoReserva());
-  if (!estado.disponible) return <NoDisponible whatsapp={contacto.whatsapp} />;
+  if (!estado.disponible) return <NoDisponible whatsapp={contacto.enlaceWhatsapp} />;
 
   const servicio = (await serviciosReservables(db())).find((s) => s.slug === sp.servicio);
   const inicio = typeof sp.inicio === "string" ? new Date(sp.inicio) : null;

@@ -3,7 +3,7 @@ import { BotonAgendar, EnlaceWhatsapp } from "@/components/publico/enlaces";
 import { Pendiente, TextoOPendiente } from "@/components/publico/pendiente";
 import type { ContenidoLanding } from "@/content";
 import type { LineaHorario } from "@/modules/agenda/horario";
-import type { DatosContacto } from "@/modules/configuracion";
+import type { ContactoPublico } from "@/modules/configuracion";
 
 function Dato({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
@@ -20,7 +20,7 @@ export function Contacto({
   horario,
 }: {
   contenido: ContenidoLanding["contacto"];
-  contacto: DatosContacto;
+  contacto: ContactoPublico;
   horario: LineaHorario[];
 }) {
   return (
@@ -82,7 +82,7 @@ export function Contacto({
 
           <div className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-5">
             <BotonAgendar />
-            <EnlaceWhatsapp numero={contacto.whatsapp} />
+            <EnlaceWhatsapp enlace={contacto.enlaceWhatsapp} />
           </div>
         </div>
 

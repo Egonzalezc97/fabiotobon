@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requerirAdmin } from "@/lib/auth/servidor";
 import { db } from "@/lib/db";
 import { registrar } from "@/modules/auditoria";
-import { ConfiguracionInvalida, guardarParametros } from "@/modules/configuracion";
+import { ConfiguracionInvalida, ContactoInvalido, guardarContacto, guardarParametros } from "@/modules/configuracion";
 
 export type EstadoConfiguracion = { error?: string; ok?: string };
 
@@ -31,4 +31,29 @@ export async function guardarConfiguracionAccion(_previo: EstadoConfiguracion, f
   await registrar(db(), { actorId: admin.userId, actorTipo: "usuario", accion: "configuracion.actualizada" });
   revalidatePath("/", "layout");
   return { ok: "Configuración guardada." };
+}
+
+export async function guardarContactoAccion(_previo: EstadoConfiguracion, f: FormData): Promise<EstadoConfiguracion> {
+  const admin = await requerirAdmin();
+  const campo = (clave: string) => String(f.get(clave) ?? "");
+  try {
+    await guardarContacto(
+      db(),
+      {
+        direccion: campo("direccion"),
+        ciudad: campo("ciudad"),
+        telefono: campo("telefono"),
+        whatsapp: campo("whatsapp"),
+        mensajeWhatsapp: campo("mensajeWhatsapp"),
+        correo: campo("correo"),
+        registroProfesional: campo("registroProfesional"),
+      },
+      admin.userId,
+    );
+  } catch (error) {
+    if (error instanceof ContactoInvalido) return { error: error.message };
+    throw error;
+  }
+  revalidatePath("/", "layout");
+  return { ok: "Datos de contacto guardados. Ya se ven en el sitio." };
 }

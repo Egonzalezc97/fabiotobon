@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
+import { EnlaceWhatsapp } from "@/components/publico/enlaces";
 import { datosSitio } from "@/lib/sitio";
 import { cuposPublicos, estadoReservaPublica, serviciosReservables } from "@/modules/agenda/reserva-publica";
 import { ultimoDiaReservable } from "@/modules/agenda/disponibilidad";
@@ -23,11 +24,11 @@ export default async function Reservar({ searchParams }: Props) {
   const sp = await searchParams;
   const { contacto } = await datosSitio();
   const estado = await estadoReservaPublica(db(), entornoReserva());
-  if (!estado.disponible) return <NoDisponible whatsapp={contacto.whatsapp} />;
+  if (!estado.disponible) return <NoDisponible whatsapp={contacto.enlaceWhatsapp} />;
 
   const servicios = await serviciosReservables(db());
   const servicio = servicios.find((s) => s.slug === sp.servicio) ?? servicios[0];
-  if (!servicio) return <NoDisponible whatsapp={contacto.whatsapp} />;
+  if (!servicio) return <NoDisponible whatsapp={contacto.enlaceWhatsapp} />;
 
   const ahora = new Date();
   const { horizonteDias } = await leerParametros(db());
@@ -88,6 +89,9 @@ export default async function Reservar({ searchParams }: Props) {
           </>
         )}
       </div>
+      <p className="mt-12 font-sans text-[0.9375rem] text-gris-600">
+        ¿Ninguna hora te sirve? <EnlaceWhatsapp enlace={contacto.enlaceWhatsapp} className="text-gris-800" />
+      </p>
     </Contenedor>
   );
 }

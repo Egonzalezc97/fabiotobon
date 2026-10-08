@@ -11,10 +11,10 @@ export default async function Inicio() {
 
   return (
     <>
-      <Hero contenido={contenido.hero} whatsapp={contacto.whatsapp} horario={horario} />
+      <Hero contenido={contenido.hero} whatsapp={contacto.enlaceWhatsapp} horario={horario} />
       <div className="h-20 md:h-28" aria-hidden="true" />
       <AntesDespues contenido={contenido.antesDespues} />
-      <Servicios contenido={contenido.servicios} servicios={servicios} whatsapp={contacto.whatsapp} />
+      <Servicios contenido={contenido.servicios} servicios={servicios} whatsapp={contacto.enlaceWhatsapp} />
       <Contacto contenido={contenido.contacto} contacto={contacto} horario={horario} />
     </>
   );

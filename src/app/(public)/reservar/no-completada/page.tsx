@@ -35,7 +35,7 @@ export default async function NoCompletada({ searchParams }: Props) {
     <Contenedor>
       <Encabezado titulo={m.titulo}>{m.texto}</Encabezado>
       <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-5">
-        <EnlaceWhatsapp numero={contacto.whatsapp} className="text-gris-800" />
+        <EnlaceWhatsapp enlace={contacto.enlaceWhatsapp} className="text-gris-800" />
         <Link href="/reservar" className="font-sans text-[0.9375rem] text-gris-600 underline-offset-[6px] hover:underline">
           Empezar de nuevo
         </Link>

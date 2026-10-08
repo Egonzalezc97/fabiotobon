@@ -4,9 +4,15 @@ import { contenidoDemo } from "@/content/demo/landing";
 import { cerrarDb, db, pool } from "@/lib/db";
 import { cargarSemillaDemo } from "@/lib/db/semilla";
 import { contenidoDemoActivo, esProduccion, verificarDespliegue } from "@/lib/despliegue";
-import { enlaceWhatsapp } from "@/lib/sitio";
 import { listarHorarioSemanal, resumirHorario } from "@/modules/agenda/horario";
-import { baseTieneContenidoDemo, leerContacto, normalizarWhatsapp } from "@/modules/configuracion";
+import {
+  baseTieneContenidoDemo,
+  ContactoInvalido,
+  enlaceWhatsapp,
+  guardarContacto,
+  leerContacto,
+  normalizarWhatsapp,
+} from "@/modules/configuracion";
 import { formatearDuracion, formatearPrecio, listarServiciosLanding } from "@/modules/servicios";
 import { limpiarDatos } from "./ayudas";
 
@@ -53,9 +59,11 @@ describe("semilla de demostración", () => {
     expect(await baseTieneContenidoDemo(db())).toBe(true);
   });
 
-  it("no siembra datos de contacto ni registro profesional", async () => {
+  it("no siembra datos de contacto ni registro profesional (los reales vienen de la migración o del panel)", async () => {
+    const antes = await leerContacto(db());
     await cargarSemillaDemo(pool(), DESARROLLO);
-    expect(Object.values(await leerContacto(db())).every((v) => v === null)).toBe(true);
+    expect(await leerContacto(db())).toEqual(antes);
+    expect(antes).toMatchObject({ direccion: null, telefono: null, correo: null, registroProfesional: null });
   });
 
   it("se niega a correr en producción", async () => {
@@ -100,7 +108,17 @@ describe("servicios en la landing", () => {
 });
 
 describe("contacto", () => {
+  it("la migración deja el WhatsApp real de Fabio y el mensaje inicial, con enlace activo", async () => {
+    const contacto = await leerContacto(db());
+    expect(contacto.whatsapp).toBe("573233456845");
+    expect(contacto.mensajeWhatsapp).toBe("Hola, quiero información para agendar una valoración.");
+    expect(contacto.enlaceWhatsapp).toBe(
+      "https://wa.me/573233456845?text=Hola%2C%20quiero%20informaci%C3%B3n%20para%20agendar%20una%20valoraci%C3%B3n.",
+    );
+  });
+
   it("valida y normaliza los valores; lo inválido queda como pendiente", async () => {
+    await db().deleteFrom("configuracion").where("clave", "like", "contacto%").execute();
     await db()
       .insertInto("configuracion")
       .values([
@@ -115,8 +133,10 @@ describe("contacto", () => {
       ciudad: null,
       telefono: "(604) 000 0000",
       whatsapp: "573001234567",
+      mensajeWhatsapp: null,
       correo: null,
       registroProfesional: null,
+      enlaceWhatsapp: "https://wa.me/573001234567",
     });
   });
 
@@ -127,7 +147,25 @@ describe("contacto", () => {
     expect(normalizarWhatsapp(573001234567)).toBeNull();
   });
 
+  it("el panel guarda, valida y borra datos de contacto, y deja auditoría", async () => {
+    const vacio = { direccion: "", ciudad: "", telefono: "", whatsapp: "", mensajeWhatsapp: "", correo: "", registroProfesional: "" };
+    await guardarContacto(db(), { ...vacio, whatsapp: "+57 323 345 6845", mensajeWhatsapp: "Hola", ciudad: "Ciudad de prueba" }, "fabio");
+    expect(await leerContacto(db())).toMatchObject({
+      whatsapp: "573233456845",
+      ciudad: "Ciudad de prueba",
+      enlaceWhatsapp: "https://wa.me/573233456845?text=Hola",
+    });
+    await expect(guardarContacto(db(), { ...vacio, whatsapp: "323 345" }, "fabio")).rejects.toBeInstanceOf(ContactoInvalido);
+    await expect(guardarContacto(db(), { ...vacio, correo: "x@" }, "fabio")).rejects.toBeInstanceOf(ContactoInvalido);
+    // Vaciar un campo lo borra: la web vuelve a mostrar "[PENDIENTE: …]".
+    await guardarContacto(db(), vacio, "fabio");
+    expect(await leerContacto(db())).toMatchObject({ whatsapp: null, enlaceWhatsapp: null, ciudad: null });
+    const auditoria = await db().selectFrom("auditoria").select("accion").where("accion", "=", "contacto.actualizado").execute();
+    expect(auditoria).toHaveLength(2);
+  });
+
   it("arma el enlace de WhatsApp con el mensaje codificado", () => {
+    expect(enlaceWhatsapp("573001234567")).toBe("https://wa.me/573001234567");
     expect(enlaceWhatsapp("573001234567", "Hola, ¿cómo?")).toBe(
       "https://wa.me/573001234567?text=Hola%2C%20%C2%BFc%C3%B3mo%3F",
     );

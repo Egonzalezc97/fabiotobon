@@ -22,9 +22,3 @@ export const datosSitio = cache(async () => {
 });
 
 export const serviciosLanding = cache(() => listarServiciosLanding(db()));
-
-export const MENSAJE_WHATSAPP = "Hola, quiero información para agendar una valoración.";
-
-export function enlaceWhatsapp(numero: string, mensaje = MENSAJE_WHATSAPP): string {
-  return `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
-}

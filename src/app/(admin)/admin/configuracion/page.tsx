@@ -1,19 +1,37 @@
 import type { Metadata } from "next";
 import { requerirAdmin } from "@/lib/auth/servidor";
 import { db } from "@/lib/db";
-import { leerParametros, leerTextoAutorizacion } from "@/modules/configuracion";
+import { leerContacto, leerParametros, leerTextoAutorizacion } from "@/modules/configuracion";
 import { Alerta, Titulo } from "@/components/panel/ui";
 import { FormularioConfiguracion } from "./formulario-configuracion";
+import { FormularioContacto } from "./formulario-contacto";
 
 export const metadata: Metadata = { title: "Configuración" };
 
 export default async function Configuracion() {
   await requerirAdmin();
-  const [parametros, texto] = await Promise.all([leerParametros(db()), leerTextoAutorizacion(db())]);
+  const [parametros, texto, contacto] = await Promise.all([leerParametros(db()), leerTextoAutorizacion(db()), leerContacto(db())]);
   return (
     <div className="grid max-w-2xl gap-6">
       <Titulo>Configuración</Titulo>
-      <FormularioConfiguracion parametros={parametros} />
+      <section className="grid gap-2">
+        <h2 className="font-sans text-sm uppercase tracking-[0.14em] text-gris-600">Datos de contacto</h2>
+        <FormularioContacto
+          contacto={{
+            direccion: contacto.direccion,
+            ciudad: contacto.ciudad,
+            telefono: contacto.telefono,
+            whatsapp: contacto.whatsapp,
+            mensajeWhatsapp: contacto.mensajeWhatsapp,
+            correo: contacto.correo,
+            registroProfesional: contacto.registroProfesional,
+          }}
+        />
+      </section>
+      <section className="grid gap-2">
+        <h2 className="font-sans text-sm uppercase tracking-[0.14em] text-gris-600">Agenda y reserva</h2>
+        <FormularioConfiguracion parametros={parametros} />
+      </section>
       <section className="grid gap-2 font-sans">
         <h2 className="text-sm uppercase tracking-[0.14em] text-gris-600">Autorización de tratamiento de datos</h2>
         {!texto ? (

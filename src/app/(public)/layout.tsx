@@ -30,7 +30,7 @@ export default async function LayoutPublico({ children }: { children: React.Reac
       <Cabecera />
       <main id="contenido">{children}</main>
       <Pie contacto={contacto} />
-      <WhatsappFlotante numero={contacto.whatsapp} />
+      <WhatsappFlotante enlace={contacto.enlaceWhatsapp} />
     </div>
   );
 }
