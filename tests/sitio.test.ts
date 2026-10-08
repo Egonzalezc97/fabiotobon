@@ -126,6 +126,7 @@ describe("contacto", () => {
       especialidad: "Odontología integral",
       telefono: "+57 323 345 6845",
       enlaceTelefono: "tel:+573233456845",
+      telefonoLegible: "+57 323 345 6845",
       direccion: "Carrera 23 N.º 47-80",
       ciudad: "Manizales",
       referencia: "Sobre la avenida Santander, al lado de Coldeportes",
@@ -172,6 +173,7 @@ describe("contacto", () => {
       enlaceComoLlegar: null,
       // Un fijo escrito con indicativo de área también se puede llamar.
       enlaceTelefono: "tel:+576040000000",
+      telefonoLegible: "+57 604 0000000",
       // Activa pero sin texto ni número válidos: no se muestra.
       urgencias: null,
     });

@@ -137,6 +137,8 @@ export type ContactoPublico = DatosContacto & {
   enlaceComoLlegar: string | null;
   /** tel:+57… si el teléfono es un número válido. */
   enlaceTelefono: string | null;
+  /** "+57 323 345 6845": el número normalizado con formato legible (o el texto guardado si no es un número válido). */
+  telefonoLegible: string | null;
   /** Solo si está activa y tiene texto y número válidos. */
   urgencias: UrgenciasPublicas | null;
 };
@@ -174,6 +176,7 @@ export async function leerContacto(db: BaseDeDatos): Promise<ContactoPublico> {
     enlaceWhatsapp: datos.whatsapp ? enlaceWhatsapp(datos.whatsapp, datos.mensajeWhatsapp) : null,
     enlaceComoLlegar: datos.direccion ? enlaceComoLlegar(datos.direccion, datos.ciudad) : null,
     enlaceTelefono: enlaceLlamada(datos.telefono),
+    telefonoLegible: datos.telefono ? formatearCelular(normalizarTelefono(datos.telefono) ?? datos.telefono) : null,
     urgencias:
       datos.urgenciasActiva && datos.urgenciasTexto && datos.urgenciasTelefono
         ? {
@@ -188,7 +191,7 @@ export async function leerContacto(db: BaseDeDatos): Promise<ContactoPublico> {
 /** Solo los datos guardados (sin los enlaces calculados), p. ej. para el formulario del panel. */
 export function datosContacto(contacto: ContactoPublico): DatosContacto {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { enlaceWhatsapp, enlaceComoLlegar, enlaceTelefono, urgencias, ...datos } = contacto;
+  const { enlaceWhatsapp, enlaceComoLlegar, enlaceTelefono, telefonoLegible, urgencias, ...datos } = contacto;
   return datos;
 }
 

@@ -65,7 +65,7 @@ export function Contacto({
             {contacto.telefono && (
               <Dato titulo="Teléfono">
                 <a href={contacto.enlaceTelefono ?? undefined} className="underline-offset-4 hover:underline">
-                  {contacto.telefono}
+                  {contacto.telefonoLegible}
                 </a>
               </Dato>
             )}
