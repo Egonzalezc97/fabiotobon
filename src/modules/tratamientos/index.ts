@@ -25,7 +25,8 @@ export const NOMBRES_MEDIO: Record<MedioAbono, string> = {
 };
 
 export const NOMBRES_ESTADO_PAGO: Record<EstadoPago, string> = {
-  sin_tratamientos: "Sin tratamientos",
+  // Incluye a quien solo tiene tratamientos presupuestados: no cuentan como deuda (DPF).
+  sin_tratamientos: "Sin tratamientos activos",
   sin_abonos: "Sin abonos",
   con_saldo: "Con saldo",
   saldado: "Saldado",

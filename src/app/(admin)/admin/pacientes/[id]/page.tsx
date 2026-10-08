@@ -191,6 +191,7 @@ export default async function FichaPaciente({ params, searchParams }: Props) {
 
       {pestana === "historial" && (
         <section className="font-sans">
+          {eventos.length === 0 && <p className="text-sm text-gris-600">Sin cambios registrados.</p>}
           <ol className="grid gap-3 text-sm">
             {eventos.map((e) => (
               <li key={e.id} className="border-l-2 border-gris-200 pl-3">

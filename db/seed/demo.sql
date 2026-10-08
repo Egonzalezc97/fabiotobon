@@ -111,6 +111,13 @@ VALUES
   ('PA', 'DEMO0005', 'Valentina Ruiz', 'Paciente de demostración')
 ON CONFLICT (tipo_documento, numero_documento) DO NOTHING;
 
+-- Historial de la ficha: evento "creado" de cada paciente ficticio (una sola vez).
+INSERT INTO paciente_evento (paciente_id, tipo, cambios, actor_tipo)
+SELECT p.id, 'creado', '{"demostracion": true}'::jsonb, 'sistema'
+FROM paciente p
+WHERE p.numero_documento LIKE 'DEMO%'
+  AND NOT EXISTS (SELECT 1 FROM paciente_evento ev WHERE ev.paciente_id = p.id);
+
 -- Citas y bloqueos con fechas relativas a hoy (días hábiles siguientes). Solo se crean una vez.
 CREATE TEMP TABLE _dias_demo ON COMMIT DROP AS
 SELECT row_number() OVER (ORDER BY d) AS n, d::date AS fecha
@@ -186,3 +193,83 @@ SELECT * FROM (
   FROM _dias_demo WHERE n = 6
 ) AS b
 WHERE NOT EXISTS (SELECT 1 FROM bloqueo WHERE motivo LIKE '%(demostración)');
+
+-- ---------------------------------------------------------------------------
+-- Fase 4 · Tratamientos, abonos y consentimiento de imagen de DEMOSTRACIÓN
+-- ---------------------------------------------------------------------------
+-- Valores ficticios, coherentes con los precios de demostración. Cubren los estados de pago:
+-- con saldo, saldado, presupuestado (no es deuda) y cancelado con valor realizado.
+
+CREATE TEMP TABLE _tratamientos_demo ON COMMIT DROP AS
+SELECT * FROM (VALUES
+  -- (documento, servicio, descripción, estado, costo, valor realizado, inició hace n días)
+  ('DEMO0001', 'restauraciones', 'Tres resinas en el sector posterior', 'en_curso', 540000, NULL::integer, 20),
+  ('DEMO0002', 'diseno-de-sonrisa', 'Plan presentado en la valoración', 'presupuestado', 6500000, NULL, 3),
+  ('DEMO0003', 'ortodoncia', 'Ortodoncia con brackets, 18 meses', 'en_curso', 4800000, NULL, 60),
+  ('DEMO0004', 'endodoncia', 'Endodoncia de un molar', 'cancelado', 650000, 400000, 30),
+  ('DEMO0005', 'limpieza-dental', '', 'terminado', 150000, NULL, 10)
+) AS t (documento, servicio, descripcion, estado, costo, valor_realizado, hace_dias);
+
+INSERT INTO tratamiento (paciente_id, servicio_id, descripcion, costo_inicial, costo_total, estado, valor_realizado, fecha_inicio, fecha_fin, notas)
+SELECT p.id, s.id, t.descripcion, t.costo, t.costo, t.estado, t.valor_realizado,
+  (now() AT TIME ZONE 'America/Bogota')::date - t.hace_dias,
+  CASE WHEN t.estado IN ('terminado', 'cancelado') THEN (now() AT TIME ZONE 'America/Bogota')::date - t.hace_dias + 5 END,
+  'Tratamiento de demostración'
+FROM _tratamientos_demo t
+JOIN paciente p ON p.tipo_documento = 'PA' AND p.numero_documento = t.documento
+JOIN servicio s ON s.slug = t.servicio
+WHERE NOT EXISTS (
+  SELECT 1 FROM tratamiento tr JOIN paciente pa ON pa.id = tr.paciente_id WHERE pa.numero_documento LIKE 'DEMO%'
+);
+
+INSERT INTO tratamiento_evento (tratamiento_id, tipo, despues, ocurrido_en)
+SELECT tr.id, 'creado', jsonb_build_object('costo_total', tr.costo_total, 'estado', CASE WHEN tr.estado = 'cancelado' THEN 'en_curso' ELSE tr.estado END),
+  tr.fecha_inicio::timestamp AT TIME ZONE 'America/Bogota'
+FROM tratamiento tr JOIN paciente pa ON pa.id = tr.paciente_id
+WHERE pa.numero_documento LIKE 'DEMO%'
+  AND NOT EXISTS (SELECT 1 FROM tratamiento_evento ev WHERE ev.tratamiento_id = tr.id);
+
+CREATE TEMP TABLE _abonos_demo ON COMMIT DROP AS
+SELECT * FROM (VALUES
+  -- (documento, valor, hace n días, medio)
+  ('DEMO0001', 300000, 18, 'efectivo'),
+  ('DEMO0001', 100000, 5, 'transferencia'),
+  ('DEMO0003', 1200000, 58, 'tarjeta'),
+  ('DEMO0003', 400000, 28, 'transferencia'),
+  ('DEMO0004', 350000, 30, 'efectivo'),
+  ('DEMO0005', 150000, 10, 'efectivo')
+) AS a (documento, valor, hace_dias, medio);
+
+INSERT INTO abono (tratamiento_id, valor, fecha, medio, referencia)
+SELECT tr.id, a.valor, (now() AT TIME ZONE 'America/Bogota')::date - a.hace_dias, a.medio, 'Demostración'
+FROM _abonos_demo a
+JOIN paciente p ON p.tipo_documento = 'PA' AND p.numero_documento = a.documento
+JOIN tratamiento tr ON tr.paciente_id = p.id
+WHERE NOT EXISTS (
+  SELECT 1 FROM abono ab JOIN tratamiento t2 ON t2.id = ab.tratamiento_id JOIN paciente pa ON pa.id = t2.paciente_id
+  WHERE pa.numero_documento LIKE 'DEMO%'
+)
+ORDER BY a.hace_dias DESC;
+
+INSERT INTO tratamiento_evento (tratamiento_id, tipo, despues, ocurrido_en)
+SELECT ab.tratamiento_id, 'abono_registrado', jsonb_build_object('abono_id', ab.id, 'valor', ab.valor, 'medio', ab.medio, 'fecha', ab.fecha),
+  ab.fecha::timestamp AT TIME ZONE 'America/Bogota' + interval '12 hours'
+FROM abono ab JOIN tratamiento tr ON tr.id = ab.tratamiento_id JOIN paciente pa ON pa.id = tr.paciente_id
+WHERE pa.numero_documento LIKE 'DEMO%'
+  AND NOT EXISTS (SELECT 1 FROM tratamiento_evento ev WHERE ev.tratamiento_id = ab.tratamiento_id AND ev.tipo = 'abono_registrado');
+
+INSERT INTO tratamiento_evento (tratamiento_id, tipo, antes, despues, motivo, ocurrido_en)
+SELECT tr.id, 'cancelado', jsonb_build_object('estado', 'en_curso'), jsonb_build_object('estado', 'cancelado', 'valor_realizado', tr.valor_realizado),
+  'El paciente decidió suspender (demostración)', tr.fecha_fin::timestamp AT TIME ZONE 'America/Bogota' + interval '12 hours'
+FROM tratamiento tr JOIN paciente pa ON pa.id = tr.paciente_id
+WHERE pa.numero_documento LIKE 'DEMO%' AND tr.estado = 'cancelado'
+  AND NOT EXISTS (SELECT 1 FROM tratamiento_evento ev WHERE ev.tratamiento_id = tr.id AND ev.tipo = 'cancelado');
+
+-- Consentimiento de uso de imagen FICTICIO para el caso de galería de demostración (lo crea el paso de
+-- imágenes de `npm run db:semilla-demo`, con imágenes de relleno generadas; nunca fotos de pacientes).
+INSERT INTO consentimiento_imagen (paciente_id, fecha_firma, en_fisico, verificado_por, notas)
+SELECT p.id, (now() AT TIME ZONE 'America/Bogota')::date - 30, true, 'Demostración (ficticio)',
+  'Consentimiento de demostración. No corresponde a una persona real.'
+FROM paciente p
+WHERE p.tipo_documento = 'PA' AND p.numero_documento = 'DEMO0003'
+  AND NOT EXISTS (SELECT 1 FROM consentimiento_imagen ci WHERE ci.paciente_id = p.id);
