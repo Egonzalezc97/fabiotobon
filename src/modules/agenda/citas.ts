@@ -12,36 +12,15 @@ import {
   TransicionInvalida,
 } from "./errores";
 import { leerHorarioMinutos } from "./horario";
+import { ESTADOS_ACTIVOS, NOMBRES_ESTADO, TRANSICIONES, type EstadoCita } from "./estados";
 import { rangoDia, fechaLocal } from "./tiempo";
 import { enTransaccion, tomarCandadoAgenda, type Actor } from "./transaccion";
 
 // ÚNICO camino de escritura de citas (CLAUDE.md). Landing, panel y, más adelante, WhatsApp usan estas funciones.
 
-export const ESTADOS_ACTIVOS = ["pendiente", "confirmada"] as const;
-export type EstadoCita = "pendiente" | "confirmada" | "cancelada" | "cumplida" | "no_asistio";
+export { ESTADOS_ACTIVOS, NOMBRES_ESTADO, transicionesPermitidas, type EstadoCita } from "./estados";
 export type OrigenCita = "web" | "panel" | "whatsapp";
 export type RevisionCita = "documento_con_otro_celular" | "sin_documento";
-
-export const NOMBRES_ESTADO: Record<EstadoCita, string> = {
-  pendiente: "Pendiente",
-  confirmada: "Confirmada",
-  cancelada: "Cancelada",
-  cumplida: "Cumplida",
-  no_asistio: "No asistió",
-};
-
-/** Transiciones permitidas. Una cita cancelada no se reactiva: se crea otra. */
-const TRANSICIONES: Record<EstadoCita, EstadoCita[]> = {
-  pendiente: ["confirmada", "cancelada", "cumplida", "no_asistio"],
-  confirmada: ["pendiente", "cancelada", "cumplida", "no_asistio"],
-  cumplida: ["no_asistio"],
-  no_asistio: ["cumplida"],
-  cancelada: [],
-};
-
-export function transicionesPermitidas(estado: EstadoCita): EstadoCita[] {
-  return TRANSICIONES[estado];
-}
 
 type Modo =
   /** Reserva pública: solo cupos ofrecidos (horario, granularidad, antelación, horizonte) y servicios públicos. */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useAccionFormulario } from "@/components/usar-accion-formulario";
 import { enviarDatos, type EstadoFormulario } from "../acciones";
 import { BotonEnviar, claseCampo, ErrorCampo, Etiqueta, Mensaje } from "../_campos";
 
@@ -13,12 +13,12 @@ type Props = {
 };
 
 export function FormularioDatos({ servicioId, inicio, documentoObligatorio, tiposDocumento, autorizacion }: Props) {
-  const [estado, accion, pendiente] = useActionState<EstadoFormulario, FormData>(enviarDatos, {});
+  const { estado, alEnviar, pendiente } = useAccionFormulario<EstadoFormulario>(enviarDatos, {});
   const e = estado.errores ?? {};
   const v = estado.valores ?? {};
 
   return (
-    <form action={accion} className="mt-10 grid max-w-xl gap-6" noValidate>
+    <form onSubmit={alEnviar} className="mt-10 grid max-w-xl gap-6" noValidate>
       <input type="hidden" name="servicioId" value={servicioId} />
       <input type="hidden" name="inicio" value={inicio} />
       <input type="hidden" name="versionAutorizacion" value={autorizacion.version} />

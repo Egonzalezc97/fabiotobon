@@ -1,16 +1,17 @@
 "use client";
 
 import { useActionState } from "react";
+import { useAccionFormulario } from "@/components/usar-accion-formulario";
 import { enviarCodigo, pedirOtroCodigo, type EstadoFormulario } from "../acciones";
 import { BotonEnviar, claseCampo, Etiqueta, Mensaje } from "../_campos";
 
 export function FormularioCodigo() {
-  const [estado, accion, pendiente] = useActionState<EstadoFormulario, FormData>(enviarCodigo, {});
+  const { estado, alEnviar, pendiente } = useAccionFormulario<EstadoFormulario>(enviarCodigo, {});
   const [reenvio, reenviar, reenviando] = useActionState<EstadoFormulario>(pedirOtroCodigo, {});
 
   return (
     <div className="mt-10 grid max-w-xl gap-6">
-      <form action={accion} className="grid gap-6">
+      <form onSubmit={alEnviar} className="grid gap-6">
         <div>
           <Etiqueta htmlFor="codigo">Código de 6 dígitos</Etiqueta>
           <input

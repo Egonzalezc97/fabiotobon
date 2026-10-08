@@ -57,6 +57,11 @@ body {
   }
 }
 
+/* Bloqueos de agenda en el panel: rayado gris. */
+.patron-bloqueo {
+  background: repeating-linear-gradient(135deg, var(--color-gris-200) 0 6px, var(--color-gris-100) 6px 12px);
+}
+
 /* Logos en línea: escalan por altura y toman el color del texto. */
 .marca > svg {
   display: block;
