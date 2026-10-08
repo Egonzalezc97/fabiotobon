@@ -131,7 +131,7 @@ describe("fusión de fichas", () => {
       .execute();
 
     const resumen = await fusionarPacientes(db(), { destinoId: destino.id, origenId: origen.id }, FABIO);
-    expect(resumen).toEqual({ citas: 1, tratamientos: 1, consentimientos: 1 });
+    expect(resumen).toEqual({ citas: 1, tratamientos: 1, consentimientos: 1, consentimientos_imagen: 0 });
 
     expect((await db().selectFrom("cita").select("paciente_id").executeTakeFirstOrThrow()).paciente_id).toBe(destino.id);
     expect((await db().selectFrom("tratamiento").select("paciente_id").executeTakeFirstOrThrow()).paciente_id).toBe(destino.id);

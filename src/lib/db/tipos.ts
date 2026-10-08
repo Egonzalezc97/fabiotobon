@@ -79,6 +79,23 @@ export interface Bloqueo {
   motivo: Generated<string>;
 }
 
+export interface CasoGaleria {
+  actualizado_en: Generated<Timestamp>;
+  consentimiento_imagen_id: string | null;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  descripcion: Generated<string>;
+  estado: Generated<string>;
+  id: Generated<string>;
+  imagen_antes_id: string;
+  imagen_despues_id: string;
+  orden: Generated<number>;
+  procedimiento: string;
+  publicado_en: Timestamp | null;
+  publicado_por: string | null;
+  servicio_id: string | null;
+}
+
 export interface Cita {
   actualizada_en: Generated<Timestamp>;
   creada_en: Generated<Timestamp>;
@@ -132,12 +149,48 @@ export interface Consentimiento {
   version: string;
 }
 
+export interface ConsentimientoImagen {
+  archivo_clave: string | null;
+  archivo_tipo: string | null;
+  creado_en: Generated<Timestamp>;
+  en_fisico: Generated<boolean>;
+  fecha_firma: string;
+  id: Generated<string>;
+  notas: Generated<string>;
+  paciente_id: string;
+  registrado_por: string | null;
+  verificado_por: string | null;
+}
+
 export interface HorarioLaboral {
   creado_en: Generated<Timestamp>;
   dia_semana: number;
   hora_fin: string;
   hora_inicio: string;
   id: Generated<string>;
+}
+
+export interface Imagen {
+  alto: number;
+  ancho: number;
+  bytes: number;
+  clave_original: string;
+  creado_en: Generated<Timestamp>;
+  formato: string;
+  id: Generated<string>;
+  sha256: string;
+  subido_por: string | null;
+}
+
+export interface ImagenVariante {
+  alto: number;
+  ancho: number;
+  bytes: number;
+  clave: string;
+  creado_en: Generated<Timestamp>;
+  formato: string;
+  id: Generated<string>;
+  imagen_id: string;
 }
 
 export interface IntentoVerificacion {
@@ -327,11 +380,15 @@ export interface DB {
   account: Account;
   auditoria: Auditoria;
   bloqueo: Bloqueo;
+  caso_galeria: CasoGaleria;
   cita: Cita;
   cita_evento: CitaEvento;
   configuracion: Configuracion;
   consentimiento: Consentimiento;
+  consentimiento_imagen: ConsentimientoImagen;
   horario_laboral: HorarioLaboral;
+  imagen: Imagen;
+  imagen_variante: ImagenVariante;
   intento_verificacion: IntentoVerificacion;
   paciente: Paciente;
   paciente_cartera: PacienteCartera;

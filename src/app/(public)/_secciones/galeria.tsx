@@ -3,7 +3,21 @@
 import { useState } from "react";
 import { BloqueImagen } from "@/components/publico/bloque-imagen";
 import { Comparador } from "@/components/publico/comparador";
-import type { CasoAntesDespues } from "@/content";
+import type { CasoAntesDespues, ImagenSitio } from "@/content";
+
+/** Foto publicada: AVIF con WebP de respaldo, en el ancho que pida la pantalla. */
+function Foto({ imagen, alt }: { imagen: ImagenSitio; alt: string }) {
+  const tamanos = "(min-width: 1024px) 60vw, 100vw";
+  const mayor = imagen.webp.split(", ").at(-1)?.split(" ")[0];
+  return (
+    <picture className="block">
+      <source type="image/avif" srcSet={imagen.avif} sizes={tamanos} />
+      <source type="image/webp" srcSet={imagen.webp} sizes={tamanos} />
+      {/* Versiones ya optimizadas al publicar; next/image las procesaría otra vez. */}
+      <img src={mayor} alt={alt} width={imagen.ancho} height={imagen.alto} loading="lazy" decoding="async" draggable={false} className="h-full w-full object-cover" />
+    </picture>
+  );
+}
 
 export function Galeria({ casos }: { casos: CasoAntesDespues[] }) {
   const [activo, setActivo] = useState(0);
@@ -17,9 +31,19 @@ export function Galeria({ casos }: { casos: CasoAntesDespues[] }) {
           key={caso.id}
           proporcion="3 / 2"
           etiqueta={`Comparar antes y después: ${caso.procedimiento}`}
-          antes={<BloqueImagen proporcion="3 / 2" tono="oscuro" leyenda="Imagen pendiente" />}
+          antes={
+            caso.imagenes ? (
+              <Foto imagen={caso.imagenes.antes} alt={`Antes: ${caso.procedimiento}`} />
+            ) : (
+              <BloqueImagen proporcion="3 / 2" tono="oscuro" leyenda="Imagen pendiente" />
+            )
+          }
           despues={
-            <BloqueImagen proporcion="3 / 2" tono="medio" leyenda="Imagen pendiente" leyendaALaDerecha />
+            caso.imagenes ? (
+              <Foto imagen={caso.imagenes.despues} alt={`Después: ${caso.procedimiento}`} />
+            ) : (
+              <BloqueImagen proporcion="3 / 2" tono="medio" leyenda="Imagen pendiente" leyendaALaDerecha />
+            )
           }
         />
       </div>

@@ -1,9 +1,15 @@
 import { TextoOPendiente } from "@/components/publico/pendiente";
 import { Pendiente } from "@/components/publico/pendiente";
-import type { ContenidoLanding } from "@/content";
+import type { CasoAntesDespues, ContenidoLanding } from "@/content";
+import type { CasoPublico } from "@/modules/galeria";
 import { Galeria } from "./galeria";
 
-export function AntesDespues({ contenido }: { contenido: ContenidoLanding["antesDespues"] }) {
+export function AntesDespues({ contenido, publicados }: { contenido: ContenidoLanding["antesDespues"]; publicados: CasoPublico[] }) {
+  // Los casos publicados desde el panel (con consentimiento) mandan; sin ellos, el contenido de demostración o el pendiente.
+  const casos: CasoAntesDespues[] =
+    publicados.length > 0
+      ? publicados.map((c) => ({ id: c.id, procedimiento: c.procedimiento, descripcion: c.descripcion || null, imagenes: { antes: c.antes, despues: c.despues } }))
+      : contenido.casos;
   return (
     <section id="antes-y-despues" aria-labelledby="titulo-antes-despues" className="scroll-mt-16 bg-grafito text-gris-100">
       <div className="mx-auto max-w-[84rem] px-5 py-20 md:px-10 md:py-28">
@@ -18,8 +24,8 @@ export function AntesDespues({ contenido }: { contenido: ContenidoLanding["antes
             <TextoOPendiente texto={contenido.nota} dato="nota sobre los casos publicados" />
           </p>
         </div>
-        {contenido.casos.length > 0 ? (
-          <Galeria casos={contenido.casos} />
+        {casos.length > 0 ? (
+          <Galeria casos={casos} />
         ) : (
           <p className="font-sans">
             <Pendiente dato="casos de antes y después con autorización del paciente" />

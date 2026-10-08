@@ -344,6 +344,13 @@ export async function fusionarPacientes(
       .where("paciente_id", "=", origen.id)
       .returning("id")
       .execute();
+    // Consentimientos de uso de imagen (galería): también pasan a la ficha que queda.
+    const consentimientosImagen = await trx
+      .updateTable("consentimiento_imagen")
+      .set({ paciente_id: destino.id })
+      .where("paciente_id", "=", origen.id)
+      .returning("id")
+      .execute();
 
     await trx
       .updateTable("paciente")
@@ -351,7 +358,12 @@ export async function fusionarPacientes(
       .where("id", "=", origen.id)
       .execute();
 
-    const resumen = { citas: citas.length, tratamientos: tratamientos.length, consentimientos: consentimientos.length };
+    const resumen = {
+      citas: citas.length,
+      tratamientos: tratamientos.length,
+      consentimientos: consentimientos.length,
+      consentimientos_imagen: consentimientosImagen.length,
+    };
     const quien = { tipo: "usuario" as const, id: actor.userId };
     await registrarEventoPaciente(
       trx,

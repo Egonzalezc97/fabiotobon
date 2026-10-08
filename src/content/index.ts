@@ -1,7 +1,7 @@
 import { contenidoDemo } from "./demo/landing";
 import type { ContenidoLanding } from "./tipos";
 
-export type { CasoAntesDespues, ContenidoLanding } from "./tipos";
+export type { CasoAntesDespues, ContenidoLanding, ImagenSitio } from "./tipos";
 
 // Contenido real: vacío hasta que Fabio entregue textos. Cada null se muestra como "[PENDIENTE: …]".
 const contenidoReal: ContenidoLanding = {

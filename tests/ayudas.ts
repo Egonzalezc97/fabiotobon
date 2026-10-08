@@ -15,7 +15,8 @@ export async function limpiarDatos(db: BaseDeDatos) {
     TRUNCATE auditoria, usuario, "twoFactor", "session", "account", "verification", "user",
              servicio, configuracion, horario_laboral, intento_verificacion, verificacion_celular,
              solicitud_reserva, consentimiento, cita_evento, cita, bloqueo, paciente_evento,
-             abono, tratamiento_evento, tratamiento, paciente RESTART IDENTITY CASCADE;
+             abono, tratamiento_evento, tratamiento, caso_galeria, imagen_variante, imagen,
+             consentimiento_imagen, paciente RESTART IDENTITY CASCADE;
     ALTER TABLE auditoria ENABLE TRIGGER USER;
     INSERT INTO configuracion SELECT * FROM _configuracion_base;
   `.execute(db);

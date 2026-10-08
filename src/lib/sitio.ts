@@ -2,6 +2,7 @@ import { cache } from "react";
 import { obtenerContenido } from "@/content";
 import { listarHorarioSemanal, resumirHorario } from "@/modules/agenda/horario";
 import { baseTieneContenidoDemo, leerContacto } from "@/modules/configuracion";
+import { casosPublicados } from "@/modules/galeria";
 import { listarServiciosLanding } from "@/modules/servicios";
 import { db } from "./db";
 import { env } from "./env";
@@ -22,3 +23,6 @@ export const datosSitio = cache(async () => {
 });
 
 export const serviciosLanding = cache(() => listarServiciosLanding(db()));
+
+/** Casos de antes y después publicados desde el panel (con consentimiento). */
+export const casosGaleria = cache(() => casosPublicados(db()));
