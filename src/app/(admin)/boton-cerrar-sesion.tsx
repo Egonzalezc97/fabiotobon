@@ -20,7 +20,7 @@ export function BotonCerrarSesion() {
       type="button"
       onClick={salir}
       disabled={saliendo}
-      className="text-sm text-tinta-suave underline-offset-4 hover:text-tinta hover:underline disabled:opacity-50"
+      className="min-h-11 text-sm text-gris-600 underline underline-offset-4 hover:text-gris-800 disabled:opacity-50"
     >
       {saliendo ? "Cerrando sesión…" : "Cerrar sesión"}
     </button>

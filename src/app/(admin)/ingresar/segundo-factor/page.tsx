@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { estadoAccesoActual } from "@/lib/auth/servidor";
+import { PantallaAcceso } from "../pantalla-acceso";
+import { TituloAcceso } from "../titulo-acceso";
 import { ActivarSegundoFactor } from "./activar-segundo-factor";
 
 export const metadata: Metadata = {
@@ -14,13 +16,13 @@ export default async function SegundoFactor() {
   if (estado.tipo !== "sin_segundo_factor") redirect("/ingresar");
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-16">
-      <h1 className="text-2xl font-semibold">Activa la verificación en dos pasos</h1>
-      <p className="mt-3 text-tinta-suave">
+    <PantallaAcceso ancho="amplio">
+      <TituloAcceso>Activa la verificación en dos pasos</TituloAcceso>
+      <p className="mt-3 text-gris-600">
         El panel guarda datos de pacientes. Para entrar necesitas, además de la contraseña, un código de una
         aplicación autenticadora en tu celular (Google Authenticator, Microsoft Authenticator u otra).
       </p>
       <ActivarSegundoFactor />
-    </main>
+    </PantallaAcceso>
   );
 }

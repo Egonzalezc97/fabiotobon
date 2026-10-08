@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { estadoAccesoActual } from "@/lib/auth/servidor";
 import { BotonCerrarSesion } from "../boton-cerrar-sesion";
 import { FormularioIngreso } from "./formulario-ingreso";
+import { PantallaAcceso } from "./pantalla-acceso";
+import { TituloAcceso } from "./titulo-acceso";
 
 export const metadata: Metadata = {
   title: "Ingresar",
@@ -15,16 +17,16 @@ export default async function Ingresar() {
   if (estado.tipo === "sin_segundo_factor") redirect("/ingresar/segundo-factor");
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6 py-16">
-      <h1 className="text-2xl font-semibold">Ingresar al panel</h1>
+    <PantallaAcceso>
       {estado.tipo === "sin_permiso" ? (
-        <div className="mt-6 space-y-4">
-          <p className="text-tinta-suave">Esta cuenta no tiene acceso al panel.</p>
+        <div className="space-y-5">
+          <TituloAcceso>Ingresar</TituloAcceso>
+          <p className="text-gris-600">Esta cuenta no tiene acceso al panel.</p>
           <BotonCerrarSesion />
         </div>
       ) : (
         <FormularioIngreso />
       )}
-    </main>
+    </PantallaAcceso>
   );
 }

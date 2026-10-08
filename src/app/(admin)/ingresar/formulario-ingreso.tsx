@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { BotonPrincipal, Campo, MensajeError } from "@/components/campo";
 import { authCliente } from "@/lib/auth/cliente";
+import { TituloAcceso } from "./titulo-acceso";
 
 type Paso = "credenciales" | "codigo" | "respaldo";
 
@@ -64,7 +65,8 @@ export function FormularioIngreso() {
 
   if (paso === "credenciales") {
     return (
-      <form onSubmit={enviarCredenciales} className="mt-8 space-y-5">
+      <form method="post" onSubmit={enviarCredenciales} className="space-y-5" noValidate>
+        <TituloAcceso>Ingresar</TituloAcceso>
         <Campo etiqueta="Correo" id="correo" name="correo" type="email" autoComplete="username" required />
         <Campo
           etiqueta="Contraseña"
@@ -75,14 +77,15 @@ export function FormularioIngreso() {
           required
         />
         <MensajeError mensaje={error} />
-        <BotonPrincipal cargando={cargando}>{cargando ? "Verificando…" : "Continuar"}</BotonPrincipal>
+        <BotonPrincipal cargando={cargando}>{cargando ? "Verificando…" : "Ingresar"}</BotonPrincipal>
       </form>
     );
   }
 
   return (
-    <form onSubmit={enviarCodigo} className="mt-8 space-y-5" key={paso}>
-      <p className="text-sm text-tinta-suave">
+    <form method="post" onSubmit={enviarCodigo} className="space-y-5" key={paso}>
+      <TituloAcceso>{paso === "codigo" ? "Código de verificación" : "Código de respaldo"}</TituloAcceso>
+      <p className="font-sans text-sm text-gris-600">
         {paso === "codigo"
           ? "Escribe el código de seis dígitos de tu aplicación autenticadora."
           : "Escribe uno de tus códigos de respaldo. Cada código sirve una sola vez."}
@@ -97,14 +100,14 @@ export function FormularioIngreso() {
         required
       />
       <MensajeError mensaje={error} />
-      <BotonPrincipal cargando={cargando}>{cargando ? "Verificando…" : "Ingresar"}</BotonPrincipal>
+      <BotonPrincipal cargando={cargando}>{cargando ? "Verificando…" : "Entrar al panel"}</BotonPrincipal>
       <button
         type="button"
         onClick={() => {
           setError(null);
           setPaso(paso === "codigo" ? "respaldo" : "codigo");
         }}
-        className="text-sm text-tinta-suave underline underline-offset-4 hover:text-tinta"
+        className="min-h-11 font-sans text-sm text-gris-600 underline underline-offset-4 hover:text-gris-800"
       >
         {paso === "codigo" ? "Usar un código de respaldo" : "Usar la aplicación autenticadora"}
       </button>
