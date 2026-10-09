@@ -1,4 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { sql } from "kysely";
 import { cerrarDb, db } from "@/lib/db";
 import { emisorDesarrollo, EmisorNoPermitido, obtenerEmisor, type EmisorCodigo } from "@/lib/verificacion";
 import { crearCita, resolverRevisionVinculando, RevisionNoPendiente } from "@/modules/agenda/citas";
@@ -59,10 +60,7 @@ async function escenario() {
     .insertInto("horario_laboral")
     .values([1, 2, 3, 4, 5].map((d) => ({ dia_semana: d, hora_inicio: "08:00", hora_fin: "12:00" })))
     .execute();
-  await db()
-    .insertInto("configuracion")
-    .values({ clave: "texto_autorizacion_datos", valor: JSON.stringify(TEXTO) })
-    .execute();
+  await db().insertInto("texto_autorizacion").values(TEXTO).execute();
   const existente = await db()
     .insertInto("paciente")
     .values({ tipo_documento: "CC", numero_documento: "52000111", nombre: "Paciente Existente", celular: "+573001110000" })
@@ -429,11 +427,8 @@ describe("validaciones de entrada", () => {
     const { emisor, codigos } = emisorFalso();
     const inicio = await iniciarReserva(db(), datos(e.servicioId), entorno(emisor), ctx());
     if (!inicio.ok) throw new Error();
-    await db()
-      .updateTable("configuracion")
-      .set({ valor: JSON.stringify({ ...TEXTO, version: "v2", texto: `${TEXTO.texto} Cambio.` }) })
-      .where("clave", "=", "texto_autorizacion_datos")
-      .execute();
+    // Versión nueva (la tabla es de solo inserción): la vigente cambia.
+    await db().insertInto("texto_autorizacion").values({ ...TEXTO, version: "v2", texto: `${TEXTO.texto} Cambio.` }).execute();
     expect(await verificarCodigo(db(), inicio.token, [...codigos.values()][0]!, ctx())).toEqual({ tipo: "autorizacion_cambio" });
   });
 
@@ -451,14 +446,15 @@ describe("estado de la reserva pública", () => {
     await escenario();
     const { emisor } = emisorFalso();
     expect(await estadoReservaPublica(db(), entorno(null))).toEqual({ disponible: false, motivo: "sin_emisor" });
-    await db()
-      .updateTable("configuracion")
-      .set({ valor: JSON.stringify({ ...TEXTO, demostracion: true }) })
-      .where("clave", "=", "texto_autorizacion_datos")
-      .execute();
+    await db().insertInto("texto_autorizacion").values({ ...TEXTO, version: "demo-2", demostracion: true }).execute();
     expect(await estadoReservaPublica(db(), { emisor, produccion: true })).toEqual({ disponible: false, motivo: "sin_texto_legal" });
     expect((await estadoReservaPublica(db(), { emisor, produccion: false })).disponible).toBe(true);
-    await db().deleteFrom("configuracion").where("clave", "=", "texto_autorizacion_datos").execute();
+    // Un borrador real tampoco habilita la reserva en producción; la versión aprobada sí.
+    await db().insertInto("texto_autorizacion").values({ ...TEXTO, version: "borrador-2026-10-08" }).execute();
+    expect(await estadoReservaPublica(db(), { emisor, produccion: true })).toEqual({ disponible: false, motivo: "sin_texto_legal" });
+    await db().insertInto("texto_autorizacion").values({ ...TEXTO, version: "2026-10-09" }).execute();
+    expect((await estadoReservaPublica(db(), { emisor, produccion: true })).disponible).toBe(true);
+    await sql`TRUNCATE texto_autorizacion`.execute(db());
     expect(await estadoReservaPublica(db(), { emisor, produccion: false })).toEqual({ disponible: false, motivo: "sin_texto_legal" });
   });
 

@@ -285,6 +285,15 @@ export interface SolicitudReserva {
   verificada_en: Timestamp | null;
 }
 
+export interface TextoAutorizacion {
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  demostracion: Generated<boolean>;
+  orden: Generated<Int8>;
+  texto: string;
+  version: string;
+}
+
 export interface Tratamiento {
   actualizado_en: Generated<Timestamp>;
   costo_inicial: number;
@@ -396,6 +405,7 @@ export interface DB {
   servicio: Servicio;
   session: Session;
   solicitud_reserva: SolicitudReserva;
+  texto_autorizacion: TextoAutorizacion;
   tratamiento: Tratamiento;
   tratamiento_evento: TratamientoEvento;
   tratamiento_saldo: TratamientoSaldo;

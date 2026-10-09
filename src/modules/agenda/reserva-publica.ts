@@ -89,7 +89,7 @@ export async function estadoReservaPublica(
 ): Promise<EstadoReservaPublica> {
   if (!entorno.emisor) return { disponible: false, motivo: "sin_emisor" };
   const texto = await leerTextoAutorizacion(db);
-  if (!texto || (entorno.produccion && texto.demostracion)) return { disponible: false, motivo: "sin_texto_legal" };
+  if (!texto || (entorno.produccion && (texto.demostracion || texto.borrador))) return { disponible: false, motivo: "sin_texto_legal" };
   if ((await serviciosReservables(db)).length === 0) return { disponible: false, motivo: "sin_servicio" };
   const { documentoObligatorio } = await leerParametros(db);
   return { disponible: true, texto, documentoObligatorio };

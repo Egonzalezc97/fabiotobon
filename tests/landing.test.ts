@@ -33,7 +33,7 @@ async function renderizar() {
   const contenido = obtenerContenido(false).contacto;
   return {
     contacto: renderToStaticMarkup(createElement(Contacto, { contenido, contacto, horario: [] })),
-    pie: renderToStaticMarkup(createElement(Pie, { contacto })),
+    pie: renderToStaticMarkup(createElement(Pie, { contacto, politicaPublicada: false })),
   };
 }
 

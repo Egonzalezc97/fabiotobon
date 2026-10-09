@@ -84,21 +84,15 @@ VALUES
 -- ---------------------------------------------------------------------------
 
 -- Texto de autorización FICTICIO. Marcado como demostración: en producción no habilita la reserva.
--- El texto real lo redacta Fabio con su abogado (Ley 1581 de 2012).
-INSERT INTO configuracion (clave, valor, descripcion)
-VALUES (
-  'texto_autorizacion_datos',
-  jsonb_build_object(
-    'version', 'demo-1',
-    'demostracion', true,
-    'texto', 'TEXTO DE DEMOSTRACIÓN. No es una autorización real.' || E'\n\n' ||
-      'Al reservar autorizas que tus datos de contacto e identificación se usen para agendar y gestionar tu cita. ' ||
-      'Aquí irá la autorización redactada por Fabio y su abogado: responsable, finalidades, derechos del titular ' ||
-      'y canales para ejercerlos.'
-  ),
-  'Texto vigente de la autorización de tratamiento de datos'
-)
-ON CONFLICT (clave) DO UPDATE SET valor = EXCLUDED.valor;
+-- El texto real lo redacta Fabio con su abogado (Ley 1581 de 2012). Solo si aún no hay ninguna versión:
+-- la tabla es de solo inserción y nunca se reemplaza un texto real o un borrador ya cargado.
+INSERT INTO texto_autorizacion (version, demostracion, texto)
+SELECT 'demo-1', true,
+  'TEXTO DE DEMOSTRACIÓN. No es una autorización real.' || E'\n\n' ||
+  'Al reservar autorizas que tus datos de contacto e identificación se usen para agendar y gestionar tu cita. ' ||
+  'Aquí irá la autorización redactada por Fabio y su abogado: responsable, finalidades, derechos del titular ' ||
+  'y canales para ejercerlos.'
+WHERE NOT EXISTS (SELECT 1 FROM texto_autorizacion);
 
 -- Pacientes ficticios. Documentos tipo PA con prefijo DEMO para que no coincidan con documentos reales,
 -- y sin celular para no apuntar a números de terceros.

@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { obtenerContenido } from "@/content";
 import { listarHorarioSemanal, resumirHorario } from "@/modules/agenda/horario";
-import { baseTieneContenidoDemo, leerContacto } from "@/modules/configuracion";
+import { baseTieneContenidoDemo, leerContacto, leerPolitica } from "@/modules/configuracion";
 import { casosPublicados } from "@/modules/galeria";
 import { listarServiciosLanding } from "@/modules/servicios";
 import { db } from "./db";
@@ -13,13 +13,21 @@ import { env } from "./env";
  * así un dato ficticio nunca aparece sin la cinta.
  */
 export const datosSitio = cache(async () => {
-  const [contacto, demoEnBase, horario] = await Promise.all([
+  const [contacto, demoEnBase, horario, politica] = await Promise.all([
     leerContacto(db()),
     baseTieneContenidoDemo(db()),
     listarHorarioSemanal(db()),
+    leerPolitica(db()),
   ]);
   const modoDemo = env().DEMO_CONTENT || demoEnBase;
-  return { contacto, modoDemo, horario: resumirHorario(horario), contenido: obtenerContenido(modoDemo) };
+  return {
+    contacto,
+    modoDemo,
+    horario: resumirHorario(horario),
+    contenido: obtenerContenido(modoDemo),
+    /** Solo con la política completa y aprobada hay enlaces a /tratamiento-de-datos. */
+    politicaPublicada: politica.publicable,
+  };
 });
 
 export const serviciosLanding = cache(() => listarServiciosLanding(db()));

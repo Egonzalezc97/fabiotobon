@@ -3,6 +3,7 @@
 import { useAccionFormulario } from "@/components/usar-accion-formulario";
 import { enviarDatos, type EstadoFormulario } from "../acciones";
 import { BotonEnviar, claseCampo, ErrorCampo, Etiqueta, Mensaje } from "../_campos";
+import { EtiquetaAutorizacion } from "./etiqueta-autorizacion";
 
 type Props = {
   servicioId: string;
@@ -10,9 +11,10 @@ type Props = {
   documentoObligatorio: boolean;
   tiposDocumento: { valor: string; nombre: string }[];
   autorizacion: { version: string; texto: string; demostracion: boolean };
+  politicaPublicada: boolean;
 };
 
-export function FormularioDatos({ servicioId, inicio, documentoObligatorio, tiposDocumento, autorizacion }: Props) {
+export function FormularioDatos({ servicioId, inicio, documentoObligatorio, tiposDocumento, autorizacion, politicaPublicada }: Props) {
   const { estado, alEnviar, pendiente } = useAccionFormulario<EstadoFormulario>(enviarDatos, {});
   const e = estado.errores ?? {};
   const v = estado.valores ?? {};
@@ -136,7 +138,7 @@ export function FormularioDatos({ servicioId, inicio, documentoObligatorio, tipo
             aria-invalid={Boolean(e.autorizacion)}
             aria-describedby={e.autorizacion ? "error-autorizacion" : undefined}
           />
-          <span>He leído y acepto la autorización de tratamiento de datos.</span>
+          <EtiquetaAutorizacion politicaPublicada={politicaPublicada} />
         </label>
         <ErrorCampo id="error-autorizacion" mensaje={e.autorizacion} />
       </div>

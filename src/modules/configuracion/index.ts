@@ -363,30 +363,6 @@ export async function guardarParametros(db: BaseDeDatos, parametros: ParametrosC
   });
 }
 
-// ---------------------------------------------------------------------------
-// Texto de autorización de tratamiento de datos. Lo redacta Fabio con su abogado.
-// Un texto marcado como de demostración no habilita la reserva en producción.
-// ---------------------------------------------------------------------------
-
-export type TextoAutorizacion = { version: string; texto: string; demostracion: boolean };
-
-export const CLAVE_TEXTO_AUTORIZACION = "texto_autorizacion_datos";
-
-export async function leerTextoAutorizacion(db: BaseDeDatos): Promise<TextoAutorizacion | null> {
-  const fila = await db
-    .selectFrom("configuracion")
-    .select("valor")
-    .where("clave", "=", CLAVE_TEXTO_AUTORIZACION)
-    .executeTakeFirst();
-  const v = fila?.valor;
-  if (typeof v !== "object" || v === null || Array.isArray(v)) return null;
-  const { version, texto, demostracion } = v as Record<string, unknown>;
-  if (typeof version !== "string" || !version.trim() || typeof texto !== "string" || texto.trim().length < 20) {
-    return null;
-  }
-  return { version, texto, demostracion: demostracion === true };
-}
-
 /** La semilla de demostración marca la base; producción se niega a arrancar con esa marca. */
 export async function baseTieneContenidoDemo(db: BaseDeDatos): Promise<boolean> {
   const fila = await db
@@ -396,3 +372,5 @@ export async function baseTieneContenidoDemo(db: BaseDeDatos): Promise<boolean> 
     .executeTakeFirst();
   return fila?.valor === true;
 }
+
+export * from "./textos-legales";

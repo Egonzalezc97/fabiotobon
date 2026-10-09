@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { Logo } from "@/components/marca";
 import { hayRedes, hayUbicacion, Redes, Ubicacion } from "@/components/publico/contacto";
+import { RUTA_POLITICA } from "@/components/publico/rutas";
 import type { ContactoPublico } from "@/modules/configuracion";
 
-export function Pie({ contacto }: { contacto: ContactoPublico }) {
+export function Pie({ contacto, politicaPublicada }: { contacto: ContactoPublico; politicaPublicada: boolean }) {
   return (
     <footer className="border-t border-gris-200 bg-papel">
       <div className="mx-auto grid max-w-[84rem] gap-10 px-5 pb-28 pt-14 md:px-10 lg:grid-cols-12 lg:gap-x-6">
@@ -31,6 +33,14 @@ export function Pie({ contacto }: { contacto: ContactoPublico }) {
               Registro profesional
               <br />
               <span className="text-gris-800">{contacto.registroProfesional}</span>
+            </p>
+          )}
+          {/* Solo con la política publicada: nunca un enlace a una página que en producción no existe. */}
+          {politicaPublicada && (
+            <p>
+              <Link href={RUTA_POLITICA} className="text-gris-800 underline underline-offset-4 hover:decoration-2">
+                Tratamiento de datos personales
+              </Link>
             </p>
           )}
           <p className="sm:col-span-2">© {new Date().getFullYear()} Fabio Tobón Odontología</p>

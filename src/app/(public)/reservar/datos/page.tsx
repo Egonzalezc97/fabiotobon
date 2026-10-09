@@ -16,7 +16,7 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 export default async function Datos({ searchParams }: Props) {
   await connection();
   const sp = await searchParams;
-  const { contacto } = await datosSitio();
+  const { contacto, politicaPublicada } = await datosSitio();
   const estado = await estadoReservaPublica(db(), entornoReserva());
   if (!estado.disponible) return <NoDisponible whatsapp={contacto.enlaceWhatsapp} />;
 
@@ -41,6 +41,7 @@ export default async function Datos({ searchParams }: Props) {
         documentoObligatorio={estado.documentoObligatorio}
         tiposDocumento={Object.entries(TIPOS_DOCUMENTO).map(([valor, nombre]) => ({ valor, nombre }))}
         autorizacion={{ version: estado.texto.version, texto: estado.texto.texto, demostracion: estado.texto.demostracion }}
+        politicaPublicada={politicaPublicada}
       />
     </Contenedor>
   );

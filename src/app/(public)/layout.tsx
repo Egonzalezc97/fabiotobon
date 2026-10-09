@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function LayoutPublico({ children }: { children: React.ReactNode }) {
   // Se renderiza por petición: servicios, horario y contacto se leen de la base en cada visita.
   await connection();
-  const { modoDemo, contacto } = await datosSitio();
+  const { modoDemo, contacto, politicaPublicada } = await datosSitio();
 
   return (
     <div className="bg-white">
@@ -38,7 +38,7 @@ export default async function LayoutPublico({ children }: { children: React.Reac
         <MedirCabecera />
       </div>
       <main id="contenido">{children}</main>
-      <Pie contacto={contacto} />
+      <Pie contacto={contacto} politicaPublicada={politicaPublicada} />
       <WhatsappFlotante enlace={contacto.enlaceWhatsapp} />
     </div>
   );
