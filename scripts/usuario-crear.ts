@@ -13,7 +13,7 @@ try {
   const rol = (argumento("rol") ?? "admin") as Rol;
   const contrasena = await pedirContrasenaNueva();
   const { userId } = await crearUsuario(auth(), db(), { nombre, usuario, correo, rol, contrasena, temporal: false }, null);
-  console.log(`Usuario "${usuario.toLowerCase()}" creado (${userId}). Al primer ingreso se le pedirá activar la verificación en dos pasos.`);
+  console.log(`Usuario "${usuario.toLowerCase()}" creado (${userId}). Ingresa con su nombre de usuario y contraseña; si quiere, puede activar la verificación en dos pasos en Mi cuenta.`);
 } catch (error) {
   console.error((error as Error).message);
   process.exitCode = 1;

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { desbloquearIngreso } from "@/lib/auth/intentos";
 import { requerirAdmin } from "@/lib/auth/servidor";
 import {
   cambiarActivo,
@@ -101,5 +102,12 @@ export async function reiniciarSegundoFactorAccion(_previo: EstadoUsuario, f: Fo
     return traducir(error);
   }
   revalidatePath("/admin/usuarios");
-  return { ok: "Segundo factor reiniciado. Deberá activarlo de nuevo al ingresar." };
+  return { ok: "Segundo factor desactivado y sesiones cerradas. Puede volver a activarlo en Mi cuenta." };
+}
+
+export async function desbloquearAccion(_previo: EstadoUsuario, f: FormData): Promise<EstadoUsuario> {
+  const admin = await requerirAdmin();
+  const estaba = await desbloquearIngreso(db(), texto(f, "userId"), { userId: admin.userId });
+  revalidatePath("/admin/usuarios");
+  return { ok: estaba ? "Ingreso desbloqueado." : "No estaba bloqueado." };
 }

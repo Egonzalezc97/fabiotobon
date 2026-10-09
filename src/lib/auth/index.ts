@@ -1,15 +1,31 @@
 import { betterAuth } from "better-auth";
-import { createAuthMiddleware, getIP, isAPIError } from "better-auth/api";
+import { APIError, createAuthMiddleware, getIP, getSessionFromCtx, isAPIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { twoFactor, username } from "better-auth/plugins";
 import { registrar } from "@/modules/auditoria";
 import { db, type BaseDeDatos } from "../db";
 import { env } from "../env";
+import { bloqueadoHasta, limpiarIntentos, normalizarIntento, registrarFallo } from "./intentos";
 
 export const NOMBRE_APP = "Fabio Tobón Odontología";
 
 // Rutas de Better Auth cuyos fallos se auditan (intentos de ingreso).
 const RUTAS_INGRESO = new Set(["/sign-in/username", "/two-factor/verify-totp", "/two-factor/verify-backup-code"]);
+
+/**
+ * Sesión: vence tras 8 horas sin actividad (se renueva como máximo cada 15 minutos) y nunca dura más de 12 horas
+ * aunque haya actividad (ese tope lo aplica evaluarAcceso). 2FA opcional por decisión del 2026-10-08.
+ */
+export const SESION = { inactividadSeg: 8 * 60 * 60, renovacionSeg: 15 * 60, topeHoras: 12 } as const;
+
+/** Mensaje único para el bloqueo por usuario: no revela si la cuenta existe. */
+export const MENSAJE_BLOQUEO = "Demasiados intentos. Espera unos minutos y vuelve a intentarlo.";
+
+/** Id de la cuenta con ese nombre de usuario (en minúsculas), si existe. */
+async function idPorUsuario(db: BaseDeDatos, usuario: string): Promise<string | null> {
+  const fila = await db.selectFrom("user").select("id").where("username", "=", usuario).executeTakeFirst();
+  return fila?.id ?? null;
+}
 
 /** Nombre de usuario: solo letras, números y punto, 3 a 30 caracteres (se guarda en minúsculas). */
 export const FORMATO_USUARIO = /^[a-z0-9.]{3,30}$/;
@@ -44,15 +60,19 @@ export function crearAuth(opciones: OpcionesAuth) {
       maxPasswordLength: 128,
     },
     session: {
-      expiresIn: 60 * 60 * 12, // 12 horas
-      updateAge: 60 * 60, // se renueva como máximo una vez por hora
+      expiresIn: SESION.inactividadSeg,
+      updateAge: SESION.renovacionSeg,
     },
     rateLimit: {
       enabled: opciones.limitarIntentos,
+      // En la base: un reinicio del servidor no pone los contadores en cero.
+      storage: "database",
       window: 60,
       max: 60,
       customRules: {
-        "/sign-in/username": { window: 300, max: 5 },
+        // Por IP. 10 y no 5: el consultorio comparte IP (Fabio y la asistente no deben bloquearse entre sí).
+        // El bloqueo por usuario (5 fallos) va aparte, en intentos.ts.
+        "/sign-in/username": { window: 300, max: 10 },
         "/change-password": { window: 300, max: 5 },
         "/two-factor/verify-totp": { window: 300, max: 5 },
         "/two-factor/verify-backup-code": { window: 300, max: 5 },
@@ -76,26 +96,70 @@ export function crearAuth(opciones: OpcionesAuth) {
       nextCookies(),
     ],
     hooks: {
+      // Bloqueo por usuario: se revisa antes de validar la contraseña (bloqueado, ni la correcta entra).
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== "/sign-in/username") return;
+        const usuario = normalizarIntento((ctx.body as { username?: unknown } | undefined)?.username);
+        if (usuario && (await bloqueadoHasta(db, usuario))) throw new APIError("TOO_MANY_REQUESTS", { message: MENSAJE_BLOQUEO });
+      }),
       after: createAuthMiddleware(async (ctx) => {
-        if (!RUTAS_INGRESO.has(ctx.path)) return;
         const respuesta = ctx.context.returned;
         const encabezados = ctx.request?.headers ?? ctx.headers;
         const ip = encabezados ? getIP(encabezados, ctx.context.options) : null;
         const userAgent = encabezados?.get("user-agent") ?? null;
 
+        // Activar o desactivar el 2FA (opcional) desde Mi cuenta queda en auditoría.
+        if (ctx.path === "/two-factor/disable" || ctx.path === "/two-factor/verify-totp") {
+          if (isAPIError(respuesta)) return;
+          // Con sesión abierta, verify-totp es la activación; sin sesión es el segundo paso de un ingreso (abajo).
+          const sesion = ctx.path === "/two-factor/disable" ? ctx.context.session : await getSessionFromCtx(ctx).catch(() => null);
+          if (sesion) {
+            await registrar(db, {
+              actorId: sesion.user.id,
+              actorTipo: "usuario",
+              accion: ctx.path === "/two-factor/disable" ? "segundo_factor.desactivado" : "segundo_factor.activado",
+              entidad: "usuario",
+              entidadId: sesion.user.id,
+              ip,
+              userAgent,
+            });
+            return;
+          }
+        }
+        if (!RUTAS_INGRESO.has(ctx.path)) return;
+        const usuarioEscrito =
+          ctx.path === "/sign-in/username" ? normalizarIntento((ctx.body as { username?: unknown } | undefined)?.username) : null;
+
         if (isAPIError(respuesta)) {
+          // Se guarda la cuenta (id) si el nombre corresponde a una; si no, "desconocido". Nunca el texto escrito:
+          // podría ser una contraseña puesta en el campo equivocado.
+          const usuarioId = usuarioEscrito ? ((await idPorUsuario(db, usuarioEscrito)) ?? "desconocido") : undefined;
           await registrar(db, {
             actorTipo: "anonimo",
             accion: "sesion.fallida",
-            // No se guarda el correo intentado: puede ser dato de un tercero o una contraseña mal escrita.
-            detalle: { ruta: ctx.path, estado: respuesta.statusCode },
+            detalle: { ruta: ctx.path, estado: respuesta.statusCode, ...(usuarioId ? { usuario_id: usuarioId } : {}) },
             ip,
             userAgent,
           });
+          // Solo las credenciales incorrectas cuentan para el bloqueo (no los rechazos por otras causas).
+          if (usuarioEscrito && respuesta.statusCode === 401) {
+            const hasta = await registrarFallo(db, usuarioEscrito);
+            if (hasta) {
+              await registrar(db, {
+                actorTipo: "anonimo",
+                accion: "sesion.bloqueada",
+                detalle: { usuario_id: usuarioId ?? "desconocido", hasta: hasta.toISOString() },
+                ip,
+                userAgent,
+              });
+            }
+          }
           return;
         }
         const userId = idUsuarioIngresado(respuesta);
         if (!userId) return;
+        // Contraseña correcta: el contador de fallos vuelve a cero (también si luego se pide el código del 2FA).
+        if (usuarioEscrito) await limpiarIntentos(db, usuarioEscrito);
         // Con segundo factor activado, la contraseña correcta todavía no es un ingreso: el plugin
         // (que corre después de este hook) cambia la respuesta por twoFactorRedirect y descarta la sesión.
         // El ingreso se registra cuando se verifica el código.

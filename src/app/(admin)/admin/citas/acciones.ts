@@ -9,7 +9,7 @@ import { ErrorAgenda, FueraDeHorario } from "@/modules/agenda/errores";
 import { esFechaLocal, fechaLocal, instante } from "@/modules/agenda/tiempo";
 import { buscarPacientes, crearPaciente, DatosPacienteInvalidos, DocumentoDuplicado, type ResultadoBusqueda } from "@/modules/pacientes";
 
-// Acciones del panel sobre citas. Cada una exige sesión con segundo factor y rol admin o asistente (requerirPanel) antes de todo.
+// Acciones del panel sobre citas. Cada una exige sesión y rol admin o asistente (requerirPanel) antes de todo.
 
 export type EstadoAccion = { error?: string; fueraDeHorario?: boolean; ok?: string };
 

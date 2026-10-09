@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Logo } from "@/components/marca";
 
 /**
- * Composición común de las pantallas de acceso al panel (ingresar, código, activar segundo factor).
+ * Composición común de las pantallas de acceso al panel (ingresar, código, cambiar contraseña).
  * Escritorio: bloque grafito con el logo (5 de 12 columnas) y el formulario a la derecha.
  * Celular: logo arriba en gris oscuro y el formulario debajo.
  */

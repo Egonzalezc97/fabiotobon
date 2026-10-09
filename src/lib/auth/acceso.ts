@@ -1,6 +1,6 @@
 import { registrar } from "@/modules/auditoria";
 import type { BaseDeDatos } from "../db";
-import type { Auth } from "./index";
+import { SESION, type Auth } from "./index";
 import type { Rol } from "./usuarios";
 
 export type UsuarioAutenticado = { userId: string; nombre: string; usuario: string | null; rol: Rol };
@@ -11,17 +11,24 @@ export type EstadoAcceso =
   | { tipo: "sin_sesion" }
   | { tipo: "sin_permiso"; userId: string }
   | { tipo: "debe_cambiar_contrasena"; userId: string }
-  | { tipo: "sin_segundo_factor"; userId: string }
   | { tipo: "autorizado"; usuario: UsuarioAutenticado };
 
 /**
  * Decide, en el servidor, si una petición puede entrar al panel. Exige, en orden:
- * sesión válida, cuenta activa en `usuario`, contraseña definitiva (no temporal) y segundo factor activado.
+ * sesión válida (y de menos de 12 horas), cuenta activa en `usuario` y contraseña definitiva (no temporal).
+ * El segundo factor es opcional (decisión del 2026-10-08): si la cuenta lo activó, Better Auth ya pidió el código al ingresar.
  * El rol se verifica después, en cada página y acción (requerirRol).
  */
-export async function evaluarAcceso(auth: Auth, db: BaseDeDatos, headers: Headers): Promise<EstadoAcceso> {
+export async function evaluarAcceso(auth: Auth, db: BaseDeDatos, headers: Headers, ahora = new Date()): Promise<EstadoAcceso> {
   const sesion = await auth.api.getSession({ headers });
   if (!sesion) return { tipo: "sin_sesion" };
+
+  // Tope absoluto: aunque haya actividad, una sesión no dura más de 12 horas.
+  if (ahora.getTime() - new Date(sesion.session.createdAt).getTime() > SESION.topeHoras * 60 * 60_000) {
+    await db.deleteFrom("session").where("id", "=", sesion.session.id).execute();
+    await registrar(db, { actorId: sesion.user.id, actorTipo: "usuario", accion: "sesion.tope_alcanzado" });
+    return { tipo: "sin_sesion" };
+  }
 
   const usuario = await db
     .selectFrom("usuario")
@@ -35,7 +42,6 @@ export async function evaluarAcceso(auth: Auth, db: BaseDeDatos, headers: Header
     return { tipo: "sin_permiso", userId: sesion.user.id };
   }
   if (usuario.debe_cambiar_contrasena) return { tipo: "debe_cambiar_contrasena", userId: sesion.user.id };
-  if (!sesion.user.twoFactorEnabled) return { tipo: "sin_segundo_factor", userId: sesion.user.id };
 
   const nombreUsuario = (sesion.user as { username?: string | null }).username ?? null;
   return {

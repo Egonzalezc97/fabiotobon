@@ -8,6 +8,7 @@ import { authCliente } from "@/lib/auth/cliente";
 
 type Configuracion = { qr: string; secreto: string; codigosRespaldo: string[] };
 
+/** Activación opcional del 2FA desde Mi cuenta: contraseña, código QR, códigos de respaldo y primer código. */
 export function ActivarSegundoFactor() {
   const router = useRouter();
   const [config, setConfig] = useState<Configuracion | null>(null);
@@ -42,13 +43,13 @@ export function ActivarSegundoFactor() {
       setError("El código no coincide. Revisa la hora del celular y vuelve a intentarlo.");
       return;
     }
-    router.replace("/admin");
+    setConfig(null);
     router.refresh();
   }
 
   if (!config) {
     return (
-      <form method="post" onSubmit={iniciar} className="mt-8 space-y-5">
+      <form method="post" onSubmit={iniciar} className="mt-4 max-w-sm space-y-5">
         <Campo
           etiqueta="Confirma tu contraseña"
           id="contrasena"
@@ -92,7 +93,7 @@ export function ActivarSegundoFactor() {
         <h2 className="font-medium">3. Escribe el código que muestra la aplicación</h2>
         <Campo etiqueta="Código" id="codigo" name="codigo" inputMode="numeric" autoComplete="one-time-code" required />
         <MensajeError mensaje={error} />
-        <BotonPrincipal cargando={cargando}>{cargando ? "Verificando…" : "Activar y entrar"}</BotonPrincipal>
+        <BotonPrincipal cargando={cargando}>{cargando ? "Verificando…" : "Activar"}</BotonPrincipal>
       </form>
     </div>
   );

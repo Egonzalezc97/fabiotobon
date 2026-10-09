@@ -22,5 +22,5 @@ export async function cambiarContrasenaAccion(_previo: EstadoCambio, f: FormData
     if (error instanceof ErrorUsuarios) return { error: error.message };
     throw error;
   }
-  redirect("/ingresar/segundo-factor");
+  redirect("/admin");
 }

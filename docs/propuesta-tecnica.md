@@ -269,7 +269,8 @@ Costo: el cobro es por mensaje entregado. Según una fuente de proveedor *(por v
 | Altreon (soporte) | **DPA**: acceso a producción bajo qué condiciones y con qué registro |
 
 - RLS con negación por defecto; el sitio público solo usa funciones de servidor.
-- Segundo factor obligatorio en el panel.
+- 2FA opcional por decisión del 2026-10-08 (antes: obligatorio). Riesgo aceptado: el acceso a datos de salud depende solo de la contraseña. Pendiente: informar a Fabio. Cada usuario puede activarlo en Mi cuenta; si lo activa, se le pide el código al ingresar.
+- Contraseña de al menos 12 caracteres; 5 fallos por usuario bloquean 15 minutos (desbloqueo manual por un admin, con auditoría); 10 intentos por IP cada 5 minutos, contados en la base; sesión de 8 horas por inactividad con tope absoluto de 12 horas; auditoría de ingresos exitosos y fallidos (cuenta, IP y fecha).
 - Auditoría de escrituras y de lecturas de datos sensibles.
 - Límite de intentos en OTP y en reservas; verificación de firma en webhooks.
 - Imágenes en almacenamiento privado con URL firmadas; las de galería pública pasan por un paso explícito de publicación.

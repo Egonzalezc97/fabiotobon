@@ -193,6 +193,13 @@ export interface ImagenVariante {
   imagen_id: string;
 }
 
+export interface IntentoIngreso {
+  bloqueado_hasta: Timestamp | null;
+  fallidos: Generated<number>;
+  ultimo_fallo: Timestamp | null;
+  usuario: string;
+}
+
 export interface IntentoVerificacion {
   creado_en: Generated<Timestamp>;
   exitoso: boolean;
@@ -235,6 +242,13 @@ export interface PacienteEvento {
   ocurrido_en: Generated<Timestamp>;
   paciente_id: string;
   tipo: string;
+}
+
+export interface RateLimit {
+  count: number;
+  id: string;
+  key: string;
+  lastRequest: Int8;
 }
 
 export interface Servicio {
@@ -398,10 +412,12 @@ export interface DB {
   horario_laboral: HorarioLaboral;
   imagen: Imagen;
   imagen_variante: ImagenVariante;
+  intento_ingreso: IntentoIngreso;
   intento_verificacion: IntentoVerificacion;
   paciente: Paciente;
   paciente_cartera: PacienteCartera;
   paciente_evento: PacienteEvento;
+  rateLimit: RateLimit;
   servicio: Servicio;
   session: Session;
   solicitud_reserva: SolicitudReserva;

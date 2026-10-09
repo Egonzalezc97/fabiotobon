@@ -42,7 +42,7 @@ export function FormularioIngreso() {
       setPaso("codigo");
       return;
     }
-    // Sin segundo factor activado todavía: el panel lo redirige a activarlo.
+    // Sin segundo factor (es opcional): la contraseña basta.
     entrar();
   }
 

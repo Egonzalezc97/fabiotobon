@@ -2,8 +2,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Garantía estructural: ninguna página, acción ni ruta de API del panel queda sin verificar sesión,
-// segundo factor y ROL. Next renderiza layout y página en paralelo y las acciones de servidor y las rutas
+// Garantía estructural: ninguna página, acción ni ruta de API del panel queda sin verificar sesión
+// y ROL (el segundo factor es opcional desde el 2026-10-08). Next renderiza layout y página en paralelo y las acciones de servidor y las rutas
 // de API son endpoints públicos: cada una debe llamar a requerirPanel() o requerirAdmin() por su cuenta.
 //
 // El mapa dice qué exige cada sección. Una sección nueva que no esté aquí hace fallar la prueba.
@@ -17,6 +17,7 @@ const MAPA: Record<string, "panel" | "admin"> = {
   bloqueos: "panel",
   pacientes: "panel",
   tratamientos: "panel",
+  cuenta: "panel", // Mi cuenta: cada quien la suya
   usuarios: "admin",
   configuracion: "admin",
   servicios: "admin", // DPF: hoy solo admin

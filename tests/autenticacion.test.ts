@@ -90,10 +90,12 @@ describe("ingreso y acceso al panel", () => {
     expect(porCorreo.status).toBeGreaterThanOrEqual(400);
   });
 
-  it("sin sesión no entra; sin segundo factor se le exige activarlo", async () => {
+  it("sin sesión no entra; sin segundo factor (opcional) basta la contraseña", async () => {
     expect(await estado()).toEqual({ tipo: "sin_sesion" });
     await crearUsuario(auth(), db(), datos(), null);
-    expect((await estado((await ingresar()).cookie)).tipo).toBe("sin_segundo_factor");
+    const r = await ingresar();
+    expect(r.cuerpo).not.toHaveProperty("twoFactorRedirect");
+    expect((await estado(r.cookie)).tipo).toBe("autorizado");
   });
 
   it("una cuenta sin fila en `usuario` o desactivada no entra", async () => {
@@ -120,7 +122,7 @@ describe("ingreso y acceso al panel", () => {
     });
   });
 
-  it("con contraseña temporal: primero cambiarla, luego activar el segundo factor", async () => {
+  it("con contraseña temporal: primero cambiarla y después entra (sin exigir segundo factor)", async () => {
     await crearUsuario(auth(), db(), datos({ temporal: true }), null);
     const { cookie } = await ingresar();
     const e = await estado(cookie);
@@ -131,7 +133,7 @@ describe("ingreso y acceso al panel", () => {
       cambiarContrasenaPropia(auth(), db(), headersConCookie(cookie), { actual: "equivocada-1234567", nueva: "nueva-contrasena-propia" }, e.userId),
     ).rejects.toThrow(/actual no es correcta/);
     await cambiarContrasenaPropia(auth(), db(), headersConCookie(cookie), { actual: CONTRASENA, nueva: "nueva-contrasena-propia" }, e.userId);
-    expect((await estado((await ingresar(USUARIO, "nueva-contrasena-propia")).cookie)).tipo).toBe("sin_segundo_factor");
+    expect((await estado((await ingresar(USUARIO, "nueva-contrasena-propia")).cookie)).tipo).toBe("autorizado");
     expect((await ingresar()).status).toBeGreaterThanOrEqual(400);
   });
 
@@ -216,17 +218,22 @@ describe("gestión de usuarios", () => {
 });
 
 describe("auditoría de ingresos", () => {
-  it("registra ingresos exitosos y fallidos, sin guardar el usuario ni la contraseña intentados", async () => {
-    await crearUsuario(auth(), db(), datos(), null);
+  it("registra ingresos exitosos y fallidos con la cuenta, la IP y la fecha, sin guardar lo escrito", async () => {
+    const { userId } = await crearUsuario(auth(), db(), datos(), null);
     await ingresar(USUARIO, "contrasena-equivocada-123");
+    await ingresar("alguien-que-no-existe", "contrasena-equivocada-123");
     await ingresar();
     const filas = await db().selectFrom("auditoria").selectAll().orderBy("id").execute();
-    expect(filas.map((f) => f.accion)).toEqual(["usuario.creado", "sesion.fallida", "sesion.iniciada"]);
-    expect(filas[1]).toMatchObject({ actor_tipo: "anonimo", ip: "203.0.113.7", user_agent: "vitest" });
+    expect(filas.map((f) => f.accion)).toEqual(["usuario.creado", "sesion.fallida", "sesion.fallida", "sesion.iniciada"]);
+    expect(filas[1]).toMatchObject({ actor_tipo: "anonimo", ip: "203.0.113.7", user_agent: "vitest", detalle: { usuario_id: userId } });
+    expect(filas[2]).toMatchObject({ detalle: { usuario_id: "desconocido" } });
+    expect(filas[3]).toMatchObject({ actor_id: userId, ip: "203.0.113.7" });
+    for (const f of filas.slice(1)) expect(f.ocurrido_en).toBeTruthy();
     const serializado = JSON.stringify(filas.slice(1));
     expect(serializado).not.toContain("contrasena-equivocada-123");
     expect(serializado).not.toContain(CONTRASENA);
-    expect(JSON.stringify(filas[1])).not.toContain(USUARIO);
+    expect(serializado).not.toContain("alguien-que-no-existe");
+    expect(JSON.stringify(filas.slice(1, 3))).not.toContain(USUARIO);
   });
 
   it("con segundo factor, la contraseña sola no cuenta como ingreso; el código correcto sí", async () => {
@@ -241,25 +248,27 @@ describe("auditoría de ingresos", () => {
   });
 });
 
-describe("límite de intentos", () => {
-  it("registra en auditoría los rechazos por límite (429) sin guardar el usuario", async () => {
+describe("límite de intentos por IP", () => {
+  it("10 intentos cada 5 minutos por IP, contados en la base; los rechazos (429) quedan en auditoría", async () => {
     await crearUsuario(auth(), db(), datos(), null);
     const conLimite = crearAuth({ db: db(), secret: "secreto-solo-para-pruebas-automatizadas-0123456789", baseURL: "http://localhost:3000", limitarIntentos: true });
     const estados: number[] = [];
-    for (let i = 0; i < 7; i++) {
-      estados.push((await llamar(conLimite, "/sign-in/username", { username: USUARIO, password: "equivocada-xxxxxxx" })).status);
+    // Un nombre distinto en cada intento: aquí actúa el límite por IP, no el bloqueo por usuario.
+    for (let i = 0; i < 12; i++) {
+      estados.push((await llamar(conLimite, "/sign-in/username", { username: `usuario${i}`, password: "equivocada-xxxxxxx" })).status);
     }
-    expect(estados.slice(0, 5)).toEqual([401, 401, 401, 401, 401]);
-    expect(estados.slice(5)).toEqual([429, 429]);
+    expect(estados.slice(0, 10)).toEqual(Array(10).fill(401));
+    expect(estados.slice(10)).toEqual([429, 429]);
+    // El contador vive en la base (sobrevive a un reinicio del servidor).
+    expect((await db().selectFrom("rateLimit").selectAll().execute()).length).toBeGreaterThan(0);
     const limitadas = await db().selectFrom("auditoria").selectAll().where("accion", "=", "sesion.limitada").execute();
     expect(limitadas).toHaveLength(2);
-    expect(limitadas[0]).toMatchObject({ actor_tipo: "anonimo", detalle: { ruta: "/sign-in/username" } });
-    expect(JSON.stringify(limitadas)).not.toContain(USUARIO);
+    expect(limitadas[0]).toMatchObject({ actor_tipo: "anonimo", ip: "203.0.113.7", detalle: { ruta: "/sign-in/username" } });
   });
 });
 
 describe("reinicio del segundo factor", () => {
-  it("borra el segundo factor, cierra las sesiones y obliga a activarlo de nuevo", async () => {
+  it("borra el segundo factor y cierra las sesiones; después entra solo con la contraseña", async () => {
     await crearUsuario(auth(), db(), datos(), null);
     await activarSegundoFactor();
     await reiniciarSegundoFactor(db(), { usuario: USUARIO, motivo: "Perdió el celular" });
@@ -267,7 +276,7 @@ describe("reinicio del segundo factor", () => {
     expect(await db().selectFrom("session").selectAll().execute()).toHaveLength(0);
     const nuevo = await ingresar();
     expect(nuevo.cuerpo).not.toHaveProperty("twoFactorRedirect");
-    expect((await estado(nuevo.cookie)).tipo).toBe("sin_segundo_factor");
+    expect((await estado(nuevo.cookie)).tipo).toBe("autorizado");
   });
 
   it("exige un motivo y una cuenta existente", async () => {

@@ -25,8 +25,6 @@ export async function requerirRol(...roles: Rol[]): Promise<UsuarioAutenticado> 
       redirect("/admin?aviso=sin-permiso");
     case "debe_cambiar_contrasena":
       redirect("/ingresar/cambiar-contrasena");
-    case "sin_segundo_factor":
-      redirect("/ingresar/segundo-factor");
     case "sin_sesion":
     case "sin_permiso":
       redirect("/ingresar");

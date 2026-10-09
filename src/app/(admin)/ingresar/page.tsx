@@ -15,7 +15,6 @@ export default async function Ingresar() {
   const estado = await estadoAccesoActual();
   if (estado.tipo === "autorizado") redirect("/admin");
   if (estado.tipo === "debe_cambiar_contrasena") redirect("/ingresar/cambiar-contrasena");
-  if (estado.tipo === "sin_segundo_factor") redirect("/ingresar/segundo-factor");
 
   return (
     <PantallaAcceso>

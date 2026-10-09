@@ -15,6 +15,7 @@ const SECCIONES: { href: string; texto: string; soloAdmin?: boolean }[] = [
   { href: "/admin/horario", texto: "Horario", soloAdmin: true },
   { href: "/admin/usuarios", texto: "Usuarios", soloAdmin: true },
   { href: "/admin/configuracion", texto: "Configuración", soloAdmin: true },
+  { href: "/admin/cuenta", texto: "Mi cuenta" },
 ];
 
 export function Navegacion({ webNuevas, enRevision, esAdmin }: { webNuevas: number; enRevision: number; esAdmin: boolean }) {

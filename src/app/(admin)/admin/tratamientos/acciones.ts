@@ -17,7 +17,7 @@ import {
   type MedioAbono,
 } from "@/modules/tratamientos";
 
-// Tratamientos y abonos: admin y asistente. Cada acción exige sesión, segundo factor y rol antes de todo.
+// Tratamientos y abonos: admin y asistente. Cada acción exige sesión y rol antes de todo.
 
 export type EstadoTrat = { error?: string; ok?: string; excedente?: number };
 

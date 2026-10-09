@@ -25,6 +25,7 @@ Si el código y estos documentos se contradicen, se corrige uno de los dos de fo
 - **El público nunca ve el motivo de un bloqueo** ni recibe respuestas distintas según si un teléfono o documento pertenece a un paciente.
 - **El agente solo afirma lo que devuelven sus herramientas.** Sin diagnósticos, sin recomendaciones de tratamiento, sin promesas de resultado.
 - **Datos de salud**: nada de datos reales de pacientes en el repositorio, en semillas, en registros ni en pruebas. Secretos solo en variables de entorno.
+- **Acceso al panel**: 2FA opcional por decisión del 2026-10-08. Riesgo aceptado: el acceso a datos de salud depende solo de la contraseña. Pendiente: informar a Fabio. Por eso la contraseña no se debilita: mínimo 12 caracteres, bloqueo de 15 minutos tras 5 fallos por usuario, límite por IP en la base, sesión de 8 horas por inactividad con tope de 12 horas y auditoría de ingresos exitosos y fallidos.
 
 ## Fuera de alcance
 

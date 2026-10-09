@@ -274,8 +274,8 @@ export async function cambiarContrasenaPropia(
 }
 
 /**
- * Para cuando se pierde el celular y los códigos de respaldo: borra el segundo factor y cierra
- * todas las sesiones. En el siguiente ingreso la cuenta tendrá que activarlo de nuevo.
+ * Para quien activó el segundo factor (opcional) y perdió el celular y los códigos de respaldo: lo borra y cierra
+ * todas las sesiones. Entra de nuevo solo con la contraseña y puede volver a activarlo en Mi cuenta.
  */
 export async function reiniciarSegundoFactor(
   db: BaseDeDatos,

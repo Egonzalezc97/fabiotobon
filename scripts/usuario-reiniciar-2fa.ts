@@ -1,5 +1,6 @@
 // Uso: npm run usuario:reiniciar-2fa -- --usuario ftobonc
-// Borra el segundo factor de la cuenta, cierra sus sesiones y deja registro en auditoría.
+// Desactiva el segundo factor (opcional) de la cuenta, cierra sus sesiones y deja registro en auditoría.
+// Para quien lo activó y perdió el celular y los códigos de respaldo.
 // Respaldo por consola: lo normal es hacerlo desde Panel → Usuarios.
 import { reiniciarSegundoFactor } from "../src/lib/auth/usuarios";
 import { cerrarDb, db } from "../src/lib/db";
@@ -11,7 +12,7 @@ try {
   const confirmacion = await preguntar(`Escribe el nombre de usuario otra vez para confirmar el reinicio de ${usuario}: `);
   if (confirmacion.trim().toLowerCase() !== usuario.trim().toLowerCase()) throw new Error("No coincide. No se hizo nada.");
   await reiniciarSegundoFactor(db(), { usuario, motivo });
-  console.log("Segundo factor reiniciado y sesiones cerradas. Al ingresar se le pedirá activarlo de nuevo.");
+  console.log("Segundo factor desactivado y sesiones cerradas. Puede volver a activarlo en Mi cuenta.");
 } catch (error) {
   console.error((error as Error).message);
   process.exitCode = 1;

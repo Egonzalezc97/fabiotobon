@@ -14,7 +14,7 @@ export default async function Usuarios() {
     <div className="grid max-w-3xl gap-6">
       <Titulo accion={<EnlaceBoton href="/admin/usuarios/nuevo">Nuevo usuario</EnlaceBoton>}>Usuarios</Titulo>
       <p className="font-sans text-sm text-gris-600">
-        Cada persona tiene su propia cuenta, con su contraseña y su segundo factor. Nunca compartas una cuenta: la auditoría registra quién
+        Cada persona tiene su propia cuenta, con su contraseña y, si lo activa, su segundo factor. Nunca compartas una cuenta: la auditoría registra quién
         hizo cada cosa.
       </p>
       <ul className="divide-y divide-gris-200 border border-gris-200 bg-white font-sans">
@@ -35,7 +35,7 @@ export default async function Usuarios() {
                 <Etiqueta tono={u.rol === "admin" ? "azul" : "neutro"}>{NOMBRES_ROL[u.rol]}</Etiqueta>
                 {!u.activo && <Etiqueta>Inactivo</Etiqueta>}
                 {u.activo && u.debeCambiarContrasena && <Etiqueta>Contraseña temporal</Etiqueta>}
-                {u.activo && !u.segundoFactor && <Etiqueta tono="alerta">Sin segundo factor</Etiqueta>}
+                {u.activo && u.segundoFactor && <Etiqueta>Segundo factor</Etiqueta>}
               </span>
             </Link>
           </li>
